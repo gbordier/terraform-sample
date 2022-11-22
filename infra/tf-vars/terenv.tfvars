@@ -1,5 +1,5 @@
 location = "northeurope"
-prefix = "TER"
+prefix = "ter"
 env = "trenv"
 cr_sku = "Basic"
 api_asp_sku_tier = "Standard"
