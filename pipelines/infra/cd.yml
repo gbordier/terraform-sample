@@ -18,14 +18,13 @@ jobs:
       - script: |
           az login --service-principal -u $(SP-ID) -p $(SP-PASSWORD) --tenant $(TENANT-ID)
           az account set --subscription $(SUBSCRIPTION-ID)
-          sudo apt update && sudo apt install terraform
+          sudo snap refresh terraform
           cd $(System.DefaultWorkingDirectory)/infra
           terraform init -backend-config="storage_account_name=$(PREFIX)$(ENV)tfsa" -backend-config="container_name=terraform-state" -backend-config="access_key=$(SA-ACCOUNT-KEY)" -backend-config="key=terraform.tfstate"
           terraform plan -var-file=./tf-vars/$(ENV).tfvars -var="client_id=$(SP-ID)" -var="client_secret=$(SP-PASSWORD)" -var="tenant_id=$(TENANT-ID)" -var="subscription_id=$(SUBSCRIPTION-ID)" -out="out.plan"
           which terraform
           terraform -v
-          pwd
-          ls -la 
+          
         displayName: Run Terraform Plan
       - publish: $(System.DefaultWorkingDirectory)/infra/out.plan
         artifact: terraform
@@ -44,8 +43,8 @@ jobs:
               displayName: Download Terraform plan
             - script: |
                 cd $(System.DefaultWorkingDirectory)/infra
-                ls -al 
-                sudo apt update && sudo apt install terraform
+                
+                sudo snap refresh terraform
                 terraform -v
                 which terraform
                 az login --service-principal -u $(SP-ID) -p $(SP-PASSWORD) --tenant $(TENANT-ID)
