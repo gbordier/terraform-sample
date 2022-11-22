@@ -4,8 +4,16 @@ terraform {
   backend "azurerm" {}
 }
 
+
+required_providers {
+    azurerm = {
+      version = "~> 1.40"
+    }
+  }
+
+
 provider "azurerm" {
-  version = "~> 1.40"
+  
 
   client_id = var.client_id
   client_secret = var.client_secret
