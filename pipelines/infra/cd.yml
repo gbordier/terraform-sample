@@ -39,6 +39,7 @@ jobs:
               displayName: Download Terraform plan
             - script: |
                 cd $(System.DefaultWorkingDirectory)/infra
+                ls -al 
                 az login --service-principal -u $(SP-ID) -p $(SP-PASSWORD) --tenant $(TENANT-ID)
                 az account set --subscription $(SUBSCRIPTION-ID)
                 terraform init -backend-config="storage_account_name=$(PREFIX)$(ENV)tfsa" -backend-config="container_name=terraform-state" -backend-config="access_key=$(SA-ACCOUNT-KEY)" -backend-config="key=terraform.tfstate"
