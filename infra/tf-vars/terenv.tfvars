@@ -1,6 +1,6 @@
 location = "northeurope"
 prefix = "ter"
-env = "trenv"
+env = "terenv"
 cr_sku = "Basic"
 api_asp_sku_tier = "Standard"
 api_asp_sku_size = "S1"
