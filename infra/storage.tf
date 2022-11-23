@@ -4,8 +4,7 @@ resource "azurerm_storage_account" "sa" {
   location = var.location
   account_tier = "Standard"
   account_replication_type = "LRS"
-  enable_blob_encryption = true
-  enable_file_encryption = true
+  
   enable_https_traffic_only = true
 
   tags = {
@@ -49,6 +48,8 @@ data "azurerm_storage_account_sas" "logs-sc-sas-token" {
     create = false
     update = false
     process = false
+    filter = true
+    tag = false
   }
 }
 

@@ -18,10 +18,85 @@ variable "client_secret" {
   description = "Azure service srincipal client secret"
 }
 
-variable "location" {
-  type = string
-  description = "Azure location"
+variable "environment" {
+  type        = string
+  description = "Environment"
 }
+
+variable "location" {
+  type        = string
+  description = "Location"
+}
+
+variable "site_code" {
+  type        = string
+  description = "Site code"
+}
+
+variable "client_code" {
+  type        = string
+  description = "Client code"
+}
+
+variable "site_code_hub" {
+  type        = string
+  description = "Site code of the Hub"
+}
+
+variable "client_code_hub" {
+  type        = string
+  description = "Client code of the Hub"
+}
+
+variable "aip_code_hub" {
+  type        = string
+  description = "AIP code of the Hub"
+}
+
+variable "platform_connectivity_subscription" {
+  type        = string
+  description = "Platform Connectivity subscription"
+}
+/*
+variable "lz_subscription_id" {
+  type        = string
+  description = "LZ subscription ID"
+}
+
+variable "lz_subscription_code" {
+  type        = string
+  description = "LZ subscription code"
+}
+*/
+
+variable "storageAccountName" {
+  type        = string
+  description = "Storage account where the carbon black is"
+}
+
+/*
+variable "storageAccountKey" {
+  type        = string
+  description = "Storage account key where the carbon black is"
+}
+*/
+
+variable "region" {
+  type        = string
+  description = "Region for carbon black"
+}
+/*
+variable "logAnalyticsWorkspaceId" {
+  type        = string
+  description = "Log Analytics Workspace ID"
+}
+
+variable "logAnalyticsWorkspaceKey" {
+  type        = string
+  description = "Log Analytics Workspace Key"
+}
+*/
+
 
 variable "env" {
   type = string
@@ -61,4 +136,13 @@ variable "func_asp_sku_tier" {
 variable "func_asp_sku_size" {
   type = string
   description = "Azure App Service Plan size for Functions app"
+}
+
+variable "vnetAddressSpace" {
+  type = list(string)
+  description = "vnet address space" 
+}
+variable "subnetAddressSpace" {
+type = list(string)
+description=""
 }
