@@ -52,11 +52,12 @@ variable "aip_code_hub" {
   type        = string
   description = "AIP code of the Hub"
 }
-
+/*
 variable "platform_connectivity_subscription" {
   type        = string
   description = "Platform Connectivity subscription"
 }
+*/
 /*
 variable "lz_subscription_id" {
   type        = string

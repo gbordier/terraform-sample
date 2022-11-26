@@ -78,17 +78,23 @@ function up {
 
   echo "Creating a resource groups for provisioned resources..."
   main_rg=${prefix}-${env}-main-rg
+  
   r=$(az group create -n "$main_rg" -l "$location")
   main_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
+
+  spoke_rg=${prefix}-${env}-main-rg
+  r=$(az group create -n "$spoke_rg" -l "$location")
+  spoke_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
+
   func_rg=${prefix}-${env}-func-rg
   r=$(az group create -n "$func_rg" -l "$location")
   func_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
-  echo "Done. IDs: $main_rg_id $func_rg_id"
+  echo "Done. IDs: $main_rg_id $func_rg_id $spoke_rg_id"
   echo
 
   echo "Creating a service principal for Terraform..."
   terraform_sp=http://${prefix}-${env}-tf-sp
-  r=$(az ad sp create-for-rbac -n $terraform_sp --role "contributor" --scopes "$terraform_sa_id" "$main_rg_id" "$func_rg_id")
+  r=$(az ad sp create-for-rbac -n $terraform_sp --role "contributor" --scopes "$terraform_sa_id" "$main_rg_id" "$func_rg_id" "$spoke_rg_id")
   terraform_sp_name=$(echo $r | jq '.name' | sed 's/"//g')
   terraform_sp_app_id=$(echo $r | jq '.appId' | sed 's/"//g')
   terraform_sp_password=$(echo $r | jq '.password' | sed 's/"//g')
@@ -145,12 +151,23 @@ function up {
   echo "  $terraform_rg ($terraform_rg_id)"
   echo "  $terraform_sa ($terraform_sa_id)"
   echo "  $main_rg ($main_rg_id)"
+  echo "  $spoke_rg ($spoke_rg_id)"
+  
   echo "  $func_rg ($func_rg_id)"
   echo "  $terraform_sp ($terraform_sp_id)"
   echo "  $azdo_sp ($azdo_sp_id)"
   echo "  $azdo_ra_name ($azdo_ra_id)"
   echo "  $azdo_sc ($azdo_sc_id)"
 
+cat > ./tf-vars/${env}.json << EOF
+{
+  "pipeline-rg" : "${pipeline_rg_id}",
+  "terraform-rg" : "${terraform_rg_id}",
+  "main-rg" : "${main_rg_id}",
+  "spoke-rg" : "${spoke_rg_id}",
+   "pipeline-kv ($pipeline_kv_id)"
+}
+EOF
   echo
   echo "All Done."
   echo "Remember to verify the Azure DevOps service connection at $organization_url/$project_name/_settings/adminservices?resourceId=$azdo_sc_id"

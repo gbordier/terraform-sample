@@ -127,7 +127,7 @@ resource "azurerm_route_table" "spoke" {
 
   route {
     name                   = "route-0.0.0.0-0"
-    address_prefix         = "0.0.0.0/0"
+    address_prefix         = "10.145.245.0/24"
     next_hop_type          = "VirtualAppliance"
     next_hop_in_ip_address = "10.252.160.86"
   }
@@ -194,8 +194,8 @@ resource "azurerm_virtual_machine_extension" "AADSSHLoginForLinux" {
     name = "AADSSHLoginForLinux"
     type = "AADSSHLoginForLinux"
     virtual_machine_id   = azurerm_linux_virtual_machine.test_vm.id
-    publisher            = "Microsoft.Azure.Extensions"
-    type_handler_version = "2.0"
+    publisher            = "Microsoft.Azure.ActiveDirectory"
+    type_handler_version = "1.0"
 }
 resource "azurerm_virtual_machine_extension" "example" {
   name                 = "hostname"

@@ -16,3 +16,10 @@ resource "azurerm_resource_group" "spoke" {
     env = "${var.prefix}-${var.env}"
   }
 }
+
+
+resource "azurerm_role_assignment" "assign-vm-role" {
+  scope                = azurerm_resource_group.spoke.id
+  role_definition_name = "Virtual Machine Administrator Login"
+  principal_id         = "35d238e3-ada0-49f6-8739-4e770cf98c17"
+}
