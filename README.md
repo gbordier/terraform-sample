@@ -1,6 +1,22 @@
 # Azure DevOps Terraform Template
 
-This template is a monorepo containing a starter setup for **Microsoft Azure** infrastructure managed with **Terraform** configuration, **Azure DevOps** pipelines for automation, handy script for managing environments, as well as some example Azure resources to get you started.
+** gbordier **
+customized : for vm / agora like deply
+
+api / functions dirs can be ignored
+infra has the main TF files for now.
+
+cd.yml has been slightly modified so that we ensure the same version of terraform runs on build and deploy phase.
+
+to manually run the terraform script see test.sh, we need to use the same steps as the pipeline:
+- set ENV and PREFIX variables for this env
+- use az login to get permissions 
+- pull secrets from the $PREFIX-$ENV-pl-kv keyvault and load them as variables
+
+
+
+
+
 
 The environment script is heavily inspired by [Maninderjit Bindra](https://twitter.com/maniSbindra)'s article on [Medium](https://medium.com/@maninder.bindra/creating-a-single-azure-devops-yaml-pipeline-to-provision-multiple-environments-using-terraform-e6d05343cae2).
 
