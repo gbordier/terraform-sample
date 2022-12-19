@@ -1,0 +1,25 @@
+{
+  "name": "AMA-Deployment-LinuxP",
+  "type": "Microsoft.Authorization/policyAssignments",
+  "apiVersion": "2019-09-01",
+  "properties": {
+    "description": "",
+    "displayName": "Preview AMA Agent Deployment for Linux",
+    "notScopes": [],
+    "parameters": {
+      "dcrResourceId": {
+        "value" : "parameters('AMA-Deployment-DataCollectionID')"
+      },
+      "bringYourOwnUserAssignedManagedIdentity": {
+        "value": false
+      }
+    },
+
+    "policyDefinitionId": "/providers/microsoft.authorization/policysetdefinitions/babf8e94-780b-4b4d-abaa-4830136a8725",
+    "scope": "${current_scope_resource_id}"
+  },
+  "location": "${default_location}",
+  "identity": {
+    "type": "SystemAssigned"
+  }
+}

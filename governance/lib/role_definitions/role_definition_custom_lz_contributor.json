@@ -1,0 +1,60 @@
+{
+  "name": "27f63106-f661-448e-8a01-cb848f5f15d8",
+  "type": "Microsoft.Authorization/roleDefinitions",
+  "apiVersion": "2018-01-01-preview",
+  "properties": {
+    "roleName": "RDC-lz-contributor",
+    "description": "Agora Custom Role Definition - Contributor: Allow resource creation and management - scope: Landing Zone subscription",
+    "type": "customRole",
+    "permissions": [
+      {
+        "actions": [
+          "*"
+        ],
+        "notActions": [
+          "Microsoft.Subscription/*",
+          "Microsoft.Capacity/*/action",
+          "Microsoft.Capacity/*/write",
+          "Microsoft.Capacity/*/delete",
+          "Microsoft.Authorization/*/write",
+          "Microsoft.Authorization/*/delete",
+          "Microsoft.Authorization/elevateAccess/action",
+          "Microsoft.Blueprint/blueprintAssignments/write",
+          "Microsoft.Blueprint/blueprintAssignments/delete",
+          "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/write",
+          "Microsoft.Network/virtualNetworks/virtualNetworkPeerings/delete",
+          "Microsoft.Network/routeTables/write",
+          "Microsoft.Network/routeTables/delete",
+          "Microsoft.Network/routeTables/routes/write",
+          "Microsoft.Network/routeTables/routes/delete",
+          "Microsoft.Network/vpnGateways/*",
+          "Microsoft.Network/expressRouteCircuits/*",
+          "Microsoft.Network/vpnSites/*",
+          "Microsoft.Network/virtualNetworks/write",
+          "Microsoft.Network/virtualNetworks/delete",
+          "Microsoft.Network/virtualNetworks/peer/action",
+          "Microsoft.Network/privatednsZones/*",
+          "Microsoft.Network/dnsZones/MX/*",
+          "Microsoft.Network/dnsZones/NS/*",
+          "Microsoft.Network/dnsZones/SOA/*",
+          "Microsoft.Network/dnsZones/SRV/*",
+          "Microsoft.Security/pricings/write",
+          "Microsoft.Security/pricings/delete",
+          "Microsoft.Network/networkWatchers/write",
+          "Microsoft.Network/networkWatchers/delete",
+          "Microsoft.Network/networkWatchers/configureFlowLog/action",
+          "Microsoft.Network/networkWatchers/flowLogs/write",
+          "Microsoft.Network/networkWatchers/flowLogs/delete",
+          "Microsoft.Network/ddosProtectionPlans/write",
+          "Microsoft.Network/ddosProtectionPlans/delete",
+          "Microsoft.Network/ddosProtectionPlans/join/action"
+        ],
+        "dataActions": [],
+        "notDataActions": []
+      }
+    ],
+    "assignableScopes": [
+      "${current_scope_resource_id}"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "PSCA-ResourceConsistency",
+  "type": "Microsoft.Authorization/policyAssignments",
+  "apiVersion": "2019-09-01",
+  "properties": {
+    "description": "Custom Initiative Agora Resource Consistency.",
+    "displayName": "PSCA Agora Resource Consistency",
+    "notScopes": [],
+    "parameters": {
+      "listOfAllowedLocations": {
+        "value": null
+      },
+      "listOfResourceTypes": {
+        "value": null
+      }
+    },
+    "policyDefinitionId": "${root_scope_resource_id}/providers/Microsoft.Authorization/policySetDefinitions/PSCD-ResourceConsistency",
+    "scope": "${current_scope_resource_id}"
+  },
+  "location": "${default_location}",
+  "identity": {
+    "type": "None"
+  }
+}

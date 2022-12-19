@@ -236,8 +236,8 @@ resource "null_resource" "AADSSHLoginForLinux" {
 }
 */
 locals {
-  fileUris = join("", ["https://", var.storageAccountName, ".blob.core.windows.net/ctn-carbonblack/ScriptsForAzure/Carbon-black-sensor-linux-Azure-V1.sh"])
-  command  = join(" ", ["./Carbon-black-sensor-linux-Azure-V1.sh", var.region])
+  // fileUris = join("", ["https://", var.storageAccountName, ".blob.core.windows.net/ctn-carbonblack/ScriptsForAzure/Carbon-black-sensor-linux-Azure-V1.sh"])
+//  command  = join(" ", ["./Carbon-black-sensor-linux-Azure-V1.sh", var.region])
 }
 /*
 resource "azurerm_virtual_machine_extension" "SetupVmTest" {

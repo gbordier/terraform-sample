@@ -1,4 +1,3 @@
-
 resource "azurerm_resource_group" "main-rg" {
   name = "${var.prefix}-${var.env}-main-rg"
   location = var.location
@@ -16,6 +15,8 @@ resource "azurerm_resource_group" "spoke" {
     env = "${var.prefix}-${var.env}"
   }
 }
+
+
 
 
 resource "azurerm_role_assignment" "assign-vm-role" {

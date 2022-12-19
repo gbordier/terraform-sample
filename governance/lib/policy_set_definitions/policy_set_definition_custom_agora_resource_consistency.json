@@ -1,0 +1,75 @@
+{
+  "name": "PSCD-ResourceConsistency",
+  "type": "Microsoft.Authorization/policySetDefinitions",
+  "apiVersion": "2021-06-01",
+  "scope": null,
+  "properties": {
+    "policyTpe": "Custom",
+    "displayName": "PSCD Agora Resource Consistency",
+    "description": "Custom Initiative Agora Resource Consistency",
+    "metadata": {
+      "version": "1.0.0",
+      "category": "Agora"
+    },
+    "parameters": {
+      "listOfAllowedLocations": {
+        "type": "Array",
+        "metadata": {
+          "displayName": "Allowed locations",
+          "strongType": "location",
+          "description": "The list of locations that can be specified when deploying resources."
+        }
+      },
+      "listOfResourceTypes": {
+        "type": "Array",
+        "metadata": {
+          "displayName": "Resource Types",
+          "strongType": "resourceTypes",
+          "description": "The list of resources where to audit diagnostic setting."
+        }
+      }
+    },
+    "policyDefinitions": [
+      {
+        "policyDefinitionReferenceId": "Allowed locations",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c",
+        "parameters": {
+          "listOfAllowedLocations": {
+            "value": "[parameters('listOfAllowedLocations')]"
+          }
+        },
+        "groupNames": []
+      },
+      {
+        "policyDefinitionReferenceId": "Allowed locations for resource groups",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/e765b5de-1225-4ba3-bd56-1ac6695af988",
+        "parameters": {
+          "listOfAllowedLocations": {
+            "value": "[parameters('listOfAllowedLocations')]"
+          }
+        },
+        "groupNames": []
+      },
+      {
+        "policyDefinitionReferenceId": "Audit diagnostic setting",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/7f89b1eb-583c-429a-8828-af049802c1d9",
+        "parameters": {
+          "listOfResourceTypes": {
+            "value": "[parameters('listOfResourceTypes')]"
+          }
+        },
+        "groupNames": []
+      },
+      {
+        "policyDefinitionReferenceId": "Audit resource location matches resource group location",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/0a914e76-4921-4c19-b460-a2d36003525a",
+        "groupNames": []
+      },
+      {
+        "policyDefinitionReferenceId": "Audit VMs that do not use managed disks",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/06a78e20-9358-41c9-923c-fb736d382a4d",
+        "groupNames": []
+      }
+    ]
+  }
+}

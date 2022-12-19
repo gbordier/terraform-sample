@@ -1,0 +1,23 @@
+
+{
+  "root_management_group": {
+    "policy_assignments": [
+      "PSCA-SecurityBenchmark",
+      "PSCA-ResourceConsistency",
+      "AMA-Deployment-Linux"
+
+    ],
+    "policy_definitions": [],
+    "policy_set_definitions": [
+      "PSCD-ResourceConsistency"
+    ],
+    "role_definitions": [
+      "RDC-lz-contributor"
+    ],
+    "archetype_config": {
+      "parameters": {
+      },
+      "access_control": {}
+    }
+  }
+}
