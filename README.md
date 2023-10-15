@@ -1,11 +1,26 @@
+# Why this template
+First off this template is meant to leverage enterprise-scale like deployment either on
+- Az Devops
+  Github
+
+It is therefore meant to be deployed on *multiple* subscription where the runner / service principal has all permissions at the subscription level
+
+However, since this might not be practical for testing, an the ./environment.sh script provided creates a SP and several resource groups and delegates the SP permissions to the target resource groups.
+
+if running in an environment SP can be delegated the entire subscription :
+- the environment script does not neeed to create resource group and can simply delegate the SP at the subscription level
+- the build.sh script does not need to try importing the created resource groups.
+
+*at this point the environmnet script always creates the resource groups, so don't use it if you can delegate the SP to the whole sub*
+
+> note : good security practices commands that both terraform secrets and related SP do not have permissions on multiple environments
+
+# git hub terraform template
+
 # Azure DevOps Terraform Template
 
 ## secret management with Az Devops
 ** gbordier **
-customized : for vm / agora like deply
-
-api / functions dirs can be ignored
-infra has the main TF files for now.
 
 cd.yml has been slightly modified so that we ensure the same version of terraform runs on build and deploy phase.
 
@@ -17,19 +32,21 @@ to manually run the terraform script see test.sh, we need to use the same steps 
 ### pipeline secret management with Az Devops
 using the  template at ../templates/pipeline-secrets.yml pulls the secret from the keyvault that has been created by the environment script.
 
-
 SP_ID and SP_PASSWORD are pulled from the keyvault and used to login to azure
 
 ## next steps : use github actions instead of Azure DevOps
 
-
 The environment script is heavily inspired by [Maninderjit Bindra](https://twitter.com/maniSbindra)'s article on [Medium](https://medium.com/@maninder.bindra/creating-a-single-azure-devops-yaml-pipeline-to-provision-multiple-environments-using-terraform-e6d05343cae2).
+
 
 ## Environments
 
 ### Creating an environment
-
-1. Run `infra/scripts/environment.sh up`. For help, run the script with `-h` flag.
+1. create e .env.sh file from the env.sh.template file  and set the following variable
+   - TENANT_ID
+   - PREFIX (this string will prefix all your resource names)
+   - ENV
+1. Run `xx/environment.sh up`. For help, run the script with `-h` flag.
 
    This will create the needed service principals, an Azure DevOps service connection and the following resource groups and resources:
 
