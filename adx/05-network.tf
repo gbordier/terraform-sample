@@ -1,25 +1,33 @@
 resource "azurerm_virtual_network" "spoke" {
-  name                = format("%s-spoke-vnet",  var.environment)
-//  name                = format("%s-%s-spoke-vnet", var.prefix, var.env)
+//  name                = format("%s-spoke-vnet",  var.environment)
+  name                = format("%s-%s-spoke-vnet", var.prefix, var.env)
   location            = var.location
   resource_group_name = azurerm_resource_group.spoke.name
   address_space       = var.vnetAddressSpace
 }
 
-resource "azurerm_subnet" "spoke" {
+resource "azurerm_subnet" "spoke-default" {
 //  name                 = format("%s-spoke-snet",var.environment)
-  name                = format("%s-%s-spoke-snet", var.prefix, var.env)
+  name                = format("%s-%s-spoke-snet-default", var.prefix, var.env)
 
   resource_group_name  = azurerm_resource_group.spoke.name
   virtual_network_name = azurerm_virtual_network.spoke.name
-  address_prefixes     = var.subnetAddressSpace
+  address_prefixes     = var.subnetAddressSpace1
+}
+
+resource "azurerm_subnet" "spoke-pe" {
+//  name                 = format("%s-spoke-snet",var.environment)
+  name                = format("%s-%s-spoke-snet-pe", var.prefix, var.env)
+
+  resource_group_name  = azurerm_resource_group.spoke.name
+  virtual_network_name = azurerm_virtual_network.spoke.name
+  address_prefixes     = var.subnetAddressSpace2
 }
 
 resource "azurerm_network_security_group" "spoke" {
 
     name                = format("%s-%s-spoke-nsg", var.prefix, var.env)
 //  name                = format("%s-spoke-nsg",  var.environment)
-
   location            = var.location
   resource_group_name = azurerm_resource_group.spoke.name
   security_rule {
@@ -120,13 +128,20 @@ resource "azurerm_network_security_group" "spoke" {
 
 }
 
-resource "azurerm_subnet_network_security_group_association" "spoke" {
-  subnet_id                 = azurerm_subnet.spoke.id
+resource "azurerm_subnet_network_security_group_association" "spoke-default" {
+  subnet_id                 = azurerm_subnet.spoke-default.id
+  network_security_group_id = azurerm_network_security_group.spoke.id
+}
+
+
+resource "azurerm_subnet_network_security_group_association" "spoke-pe" {
+  subnet_id                 = azurerm_subnet.spoke-pe.id
   network_security_group_id = azurerm_network_security_group.spoke.id
 }
 
 resource "azurerm_route_table" "spoke" {
-  name                          = format("%s-rt",  var.environment)
+//  name                          = format("%s-rt",  var.environment)
+    name                = format("%s-%s-rt", var.prefix, var.env)
   location                      = var.location
   resource_group_name           = azurerm_resource_group.spoke.name
   disable_bgp_route_propagation = false
@@ -140,171 +155,34 @@ resource "azurerm_route_table" "spoke" {
 
 }
 
-resource "azurerm_subnet_route_table_association" "spoke" {
-  subnet_id      = azurerm_subnet.spoke.id
+resource "azurerm_subnet_route_table_association" "spoke-default" {
+  subnet_id      = azurerm_subnet.spoke-default.id
   route_table_id = azurerm_route_table.spoke.id
 }
 
-resource "azurerm_network_interface" "test_vm" {
-  name                = format("%s-test-nic", var.environment)
-  location            = var.location
-  resource_group_name = azurerm_resource_group.spoke.name
-
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.spoke.id
-    private_ip_address_allocation = "Static"
-    private_ip_address            = "10.252.162.4"
-  }
+resource "azurerm_subnet_route_table_association" "spoke-pe" {
+  subnet_id      = azurerm_subnet.spoke-pe.id
+  route_table_id = azurerm_route_table.spoke.id
 }
 
-resource "tls_private_key" "test_vm" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
 
-resource "azurerm_linux_virtual_machine" "test_vm" {
-  name                            = format("%s-test-vm",  var.environment)
-  resource_group_name             = azurerm_resource_group.spoke.name
-  location                        = var.location
-  size                            = "Standard_F2"
-  admin_username                  = "adminuser"
-  computer_name                   = "test-vm"
-  disable_password_authentication = true
-  network_interface_ids = [
-    azurerm_network_interface.test_vm.id,
-  ]
+resource "azurerm_private_endpoint" "adx" {
+  name                = format("%s-%s-pe-adx", var.prefix, var.env)
+  location                      = var.location
+  resource_group_name           = azurerm_resource_group.spoke.name
 
-  admin_ssh_key {
-    username   = "adminuser"
-    public_key = tls_private_key.test_vm.public_key_openssh
+  subnet_id           = azurerm_subnet.spoke-pe.id
+
+  private_service_connection {
+    name                = format("%s-%s-serviceconnection-adx", var.prefix, var.env)
+    private_connection_resource_id = azurerm_kusto_cluster.adx.id
+    subresource_names = ["cluster"]
+    //subresource_names              = ["blob"]
+    is_manual_connection           = false
   }
 
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
+  private_dns_zone_group {
+    name                 = "example-dns-zone-group"
+    private_dns_zone_ids = [azurerm_private_dns_zone.private.id]
   }
-
-  source_image_reference {
-    publisher = "RedHat"
-    offer     = "RHEL"
-    sku       = "8_3"
-    version   = "latest"
-  }
-
-  identity {
-    type = "SystemAssigned"
-  }
-}
-resource "azurerm_virtual_machine_extension" "AADSSHLoginForLinux" {
-    name = "AADSSHLoginForLinux"
-    type = "AADSSHLoginForLinux"
-    virtual_machine_id   = azurerm_linux_virtual_machine.test_vm.id
-    publisher            = "Microsoft.Azure.ActiveDirectory"
-    type_handler_version = "1.0"
-}
-resource "azurerm_virtual_machine_extension" "example" {
-  name                 = "hostname"
-  virtual_machine_id   = azurerm_linux_virtual_machine.test_vm.id
-  publisher            = "Microsoft.Azure.Extensions"
-  type                 = "CustomScript"
-  type_handler_version = "2.0"
-
-  settings = <<SETTINGS
- {
-  "commandToExecute": "hostname && uptime"
- }
-SETTINGS
-
-}
-/*
-resource "null_resource" "AADSSHLoginForLinux" {
-  triggers = {
-    resource_group_name = azurerm_resource_group.spoke.name
-    vm_name             = azurerm_linux_virtual_machine.test_vm.name
-    lz_subscription_id  = var.subscription_id
-  }
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<EOT
-      az account set --subscription ${self.triggers.lz_subscription_id}
-      az vm extension set \
-        --publisher Microsoft.Azure.ActiveDirectory \
-        --name AADSSHLoginForLinux \
-        --resource-group ${self.triggers.resource_group_name} \
-        --vm-name ${self.triggers.vm_name} 
-    EOT
-  }
-
-  depends_on = [
-    azurerm_linux_virtual_machine.test_vm
-  ]
-}
-*/
-locals {
-  // fileUris = join("", ["https://", var.storageAccountName, ".blob.core.windows.net/ctn-carbonblack/ScriptsForAzure/Carbon-black-sensor-linux-Azure-V1.sh"])
-//  command  = join(" ", ["./Carbon-black-sensor-linux-Azure-V1.sh", var.region])
-}
-/*
-resource "azurerm_virtual_machine_extension" "SetupVmTest" {
-  name                       = "CbEdrAndIperf"
-  virtual_machine_id         = azurerm_linux_virtual_machine.test_vm.id
-  publisher                  = "Microsoft.Azure.Extensions"
-  type                       = "CustomScript"
-  type_handler_version       = "2.0"
-  auto_upgrade_minor_version = true
-
-  protected_settings = <<PROTECTED_SETTINGS
-{
-  "commandToExecute": "sudo dnf install iperf3 -y && iperf3 -s -p 5001 &",
-  "storageAccountName": "${var.storageAccountName}",
-  "storageAccountKey": "${var.storageAccountKey}",
-  "fileUris": ["${local.fileUris}"]  
-}
-PROTECTED_SETTINGS
-
-}
-*/
-/*
-resource "azurerm_virtual_machine_extension" "DiagnosticSettingsExtension" {
-  name                 = "DiagnosticSettings"
-  virtual_machine_id   = azurerm_linux_virtual_machine.test_vm.id
-  publisher            = "Microsoft.EnterpriseCloud.Monitoring"
-  type                 = "OmsAgentForLinux"
-  type_handler_version = "1.13"
-
-  settings = <<SETTINGS
-{
-  "workspaceId": "${var.logAnalyticsWorkspaceId}",
-  "skipDockerProviderInstall": "true"
-}
-SETTINGS
-
-  protected_settings = <<PROTECTED_SETTINGS
-{
-  "workspaceKey": "${var.logAnalyticsWorkspaceKey}"
-}
-PROTECTED_SETTINGS
-
-}
-*/
-
-resource "azurerm_private_dns_zone" "dsb" {
-  name                = "dsb.agora.alstom.hub"
-  resource_group_name = azurerm_resource_group.spoke.name
-}
-
-resource "azurerm_private_dns_zone_virtual_network_link" "spoke" {
-  name                  = "dsb-dns-zone-link"
-  resource_group_name   = azurerm_resource_group.spoke.name
-  private_dns_zone_name = azurerm_private_dns_zone.dsb.name
-  virtual_network_id    = azurerm_virtual_network.spoke.id
-}
-
-resource "azurerm_private_dns_a_record" "vm_test_dns_record" {
-  name                = azurerm_linux_virtual_machine.test_vm.name
-  zone_name           = azurerm_private_dns_zone.dsb.name
-  resource_group_name = azurerm_resource_group.spoke.name
-  ttl                 = 300
-  records             = ["${azurerm_linux_virtual_machine.test_vm.private_ip_address}"]
 }

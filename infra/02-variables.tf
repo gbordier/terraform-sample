@@ -9,17 +9,35 @@ variable "subscription_id" {
   description = "Azure subscription ID"
 }
 */
+/*
+variable "environment" {
+  type        = string
+  description = "Environment"
+}
+*/
+
+variable "env" {
+  type = string
+  description = "Environment identifier"
+}
+
+variable "prefix" {
+  type = string
+  description = "Short prefix for all the resource names"
+}
+
 
 variable "environment" {
   type        = string
   description = "Environment"
+  
 }
 
 variable "location" {
   type        = string
   description = "Location"
 }
-
+/*
 variable "site_code" {
   type        = string
   description = "Site code"
@@ -44,7 +62,7 @@ variable "aip_code_hub" {
   type        = string
   description = "AIP code of the Hub"
 }
-
+*/
 variable "platform_connectivity_subscription" {
   type        = string
   description = "Platform Connectivity subscription"
@@ -62,22 +80,12 @@ variable "lz_subscription_code" {
 }
 */
 
-
-
 variable "region" {
   type        = string
   description = "Region for carbon black"
+  default = "EMEA"
 }
 
-variable "env" {
-  type = string
-  description = "Environment identifier"
-}
-
-variable "prefix" {
-  type = string
-  description = "Short prefix for all the resource names"
-}
 /*
 variable "cr_sku" {
   type = string
@@ -89,10 +97,14 @@ variable "vnetAddressSpace" {
   type = list(string)
   description = "vnet address space" 
 }
+
 variable "subnetAddressSpace" {
 type = list(string)
 description=""
 }
+
+// those are supposed to be infra related, role assignment should go into governance
+
 /*
 resource "azurerm_role_assignment" "rg_based" {
   for_each             = var.role_assignements
@@ -103,6 +115,8 @@ resource "azurerm_role_assignment" "rg_based" {
 }
 */
 
+/*
+
 variable "role_assignements" {
   type = map(object({
     object_id            = string
@@ -111,3 +125,4 @@ variable "role_assignements" {
   }))
   description = "Roles to be assign on management group to service principal"
 }
+*/

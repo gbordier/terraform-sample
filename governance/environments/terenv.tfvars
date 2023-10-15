@@ -1,9 +1,8 @@
 
 # Enterprise scale config
 
-env="terenv"
-prefix="ter"
-environment          = "intapps"
+## those are static values 
+
 root_id              = "MG-gb2"
 root_name            = "MG-gb2"
 location             = "northeurope"

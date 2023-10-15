@@ -1,6 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
+
+## modified gbordier
+## should only setup the terraform related envionrment (not the main rg or spole rg)
+
+## this will modify the .tfvars file to add subscriotion id 
+
 function usage {
   echo "USAGE"
   echo "  $0 OPTIONS COMMAND"
@@ -30,7 +36,9 @@ function usage {
 
 function up {
   echo "Login to Azure..."
-  az login --tenant "$tenant_id"
+  [[ $(az account get-access-token -o tsv --query "expiresOn")  < $(date +"%Y-%m-%d %H:%M:%S") ]] &&  az login --tenant "$tenant_id"
+
+  
   echo
 
   echo "Setting active subscription..."
@@ -82,9 +90,10 @@ function up {
   r=$(az group create -n "$main_rg" -l "$location")
   main_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
 
-  spoke_rg=${prefix}-${env}-main-rg
+  spoke_rg=${prefix}-${env}-spoke-rg
   r=$(az group create -n "$spoke_rg" -l "$location")
   spoke_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
+
 
   func_rg=${prefix}-${env}-func-rg
   r=$(az group create -n "$func_rg" -l "$location")
@@ -110,41 +119,57 @@ function up {
   echo "Done."
   echo
 
-  echo "Creating a service principal for Azure DevOps..."
-  azdo_sp=http://${prefix}-${env}-azdo-sp
-  r=$(az ad sp create-for-rbac -n "$azdo_sp" --skip-assignment)
-  azdo_sp_name=$(echo $r | jq '.name' | sed 's/"//g')
-  azdo_sp_app_id=$(echo $r | jq '.appId' | sed 's/"//g')
-  azdo_sp_password=$(echo $r | jq '.password' | sed 's/"//g')
-  azdo_sp_id=$(az ad sp list --spn "$azdo_sp_name" --query "[0].objectId" -o "tsv")
-  echo "Done. ID: $azdo_sp_id"
-  echo
+  if [[ -z $organization_url ]] ; then
+    echo "No Azure DevOps orgnization do not create service connection."
+    echo "For manual run, we need the current user to be granted reader right on $pipeline_kv_id"
+    echo "for github action we need to created a federated identiy"
+    
+    userupn=$(az account show --query user.name -o tsv)
+    userid=$(az ad user list --query "[?mail=='$userupn'].userPrincipalName"  -o tsv )
 
-  echo "Wait for a minute..."
-  sleep 60
-  echo "Done."
-  echo
+    r=$(az keyvault set-policy --name $pipeline_kv --upn $userid --subscription "$subscription_id" --secret-permissions "get" "list")
+    azdo_sp_id=
+    azdo_ra_id=
+    azdo_sc_id=
+    
+  else
+    echo "Creating a service principal for Azure DevOps..."
+    azdo_sp=http://${prefix}-${env}-azdo-sp
+    r=$(az ad sp create-for-rbac -n "$azdo_sp" --skip-assignment)
+    azdo_sp_name=$(echo $r | jq '.name' | sed 's/"//g')
+    azdo_sp_app_id=$(echo $r | jq '.appId' | sed 's/"//g')
+    azdo_sp_password=$(echo $r | jq '.password' | sed 's/"//g')
+    azdo_sp_id=$(az ad sp list --spn "$azdo_sp_name" --query "[0].objectId" -o "tsv")
+    echo "Done. ID: $azdo_sp_id"
+    echo
 
-  echo "Creating role assignment for Azure DevOps service principal..."
-  r=$(az role assignment create --assignee "$azdo_sp_app_id" --scope "$pipeline_kv_id" --role "reader")
-  azdo_ra_id=$(echo $r | jq '.id' | sed 's/"//g')
-  azdo_ra_name=$(echo $r | jq '.name' | sed 's/"//g')
-  echo "Done. ID: $azdo_ra_id"
-  echo
+    echo "Wait for a minute..."
+    sleep 60
+    echo "Done."
+    echo
 
-  echo "Setting key vault policy..."
-  r=$(az keyvault set-policy --name $pipeline_kv --spn "$azdo_sp_app_id" --subscription "$subscription_id" --secret-permissions "get")
-  echo "Done."
-  echo
+    echo "Creating role assignment for Azure DevOps service principal..."
+    r=$(az role assignment create --assignee "$azdo_sp_app_id" --scope "$pipeline_kv_id" --role "reader")
+    azdo_ra_id=$(echo $r | jq '.id' | sed 's/"//g')
+    azdo_ra_name=$(echo $r | jq '.name' | sed 's/"//g')
+    echo "Done. ID: $azdo_ra_id"
+    echo
 
-  echo "Creating Azure DevOps service connection..."
-  echo "When you are prompted for principal key, use: $azdo_sp_password"
-  azdo_sc=${prefix}-${env}-azdo-sc
-  r=$(az devops service-endpoint azurerm create --azure-rm-service-principal-id "$azdo_sp_app_id" --azure-rm-tenant-id "$tenant_id" --azure-rm-subscription-id "$subscription_id" --azure-rm-subscription-name "$subscription_name" --name "$azdo_sc" --organization "$organization_url" --project "$project_name")
-  azdo_sc_id=$(echo $r | jq '.id' | sed 's/"//g')
-  echo "Done. ID: $azdo_sc_id"
-  echo
+    echo "Setting key vault policy..."
+    r=$(az keyvault set-policy --name $pipeline_kv --spn "$azdo_sp_app_id" --subscription "$subscription_id" --secret-permissions "get")
+    echo "Done."
+    echo
 
+
+    
+    echo "Creating Azure DevOps service connection..."
+    echo "When you are prompted for principal key, use: $azdo_sp_password"
+    azdo_sc=${prefix}-${env}-azdo-sc
+    r=$(az devops service-endpoint azurerm create --azure-rm-service-principal-id "$azdo_sp_app_id" --azure-rm-tenant-id "$tenant_id" --azure-rm-subscription-id "$subscription_id" --azure-rm-subscription-name "$subscription_name" --name "$azdo_sc" --organization "$organization_url" --project "$project_name")
+    azdo_sc_id=$(echo $r | jq '.id' | sed 's/"//g')
+    echo "Done. ID: $azdo_sc_id"
+
+  fi
   echo "Created the following resources:"
   echo "  $pipeline_rg ($pipeline_rg_id)"
   echo "  $pipeline_kv ($pipeline_kv_id)"
@@ -155,9 +180,16 @@ function up {
   
   echo "  $func_rg ($func_rg_id)"
   echo "  $terraform_sp ($terraform_sp_id)"
-  echo "  $azdo_sp ($azdo_sp_id)"
-  echo "  $azdo_ra_name ($azdo_ra_id)"
-  echo "  $azdo_sc ($azdo_sc_id)"
+  if [[ -z $azdo_sp_id ]]; then 
+    echo "no azdevops"
+  else
+    echo "  $azdo_sp ($azdo_sp_id)"
+    echo "  $azdo_ra_name ($azdo_ra_id)"
+    echo "  $azdo_sc ($azdo_sc_id)"
+  fi
+[[ -d ./tf-vars ]] || mkdir ./tf-vars
+
+
 
 cat > ./tf-vars/${env}.json << EOF
 {
@@ -165,9 +197,20 @@ cat > ./tf-vars/${env}.json << EOF
   "terraform-rg" : "${terraform_rg_id}",
   "main-rg" : "${main_rg_id}",
   "spoke-rg" : "${spoke_rg_id}",
-   "pipeline-kv ($pipeline_kv_id)"
+   "pipeline-kv" :  "${pipeline_kv_id}"
 }
 EOF
+
+folder=${PWD##*/}
+tfenvfile=../../$folder/environments/${env}.tfvars
+
+if [[ -f $tfenvfile ]] ; then
+  sed -i -e "s/lz_subscription_id.*/lz_subscription_id = \"${subscription_id}\"/ig" $tfenvfile
+
+else
+  echo "lz_subscription_id = \"${subscription_id}\"" >> $tfenvfile
+fi
+
   echo
   echo "All Done."
   echo "Remember to verify the Azure DevOps service connection at $organization_url/$project_name/_settings/adminservices?resourceId=$azdo_sc_id"
@@ -178,7 +221,8 @@ EOF
 
 function down {
   echo "Login to Azure..."
-  az login --tenant "$tenant_id"
+  [[ $(az account get-access-token --query "expiresOn" -o tsv )  < $(date +"%Y-%m-%d %H:%M:%S") ]] &&  az login --tenant "$tenant_id"
+##  az login --tenant "$tenant_id"
   echo
 
   echo "Setting active subscription..."
@@ -258,7 +302,6 @@ command=
 while [[ $# -gt 0 ]]
 do
   key="$1"
-
   case $key in
     --tenant-id)
     tenant_id="$2"
@@ -316,8 +359,16 @@ do
   esac
 done
 
+if [[ -z $subscription_name ]]; then
+  echo "deducing subscription name from subscription id..."
+  subscription_name=$(az account list --query "[?id == '30ee7660-5010-445b-8bd1-6f4cf54c89a7'].name" -o tsv)
+  echo "subscription name: $subscription_name"
+
+fi
+
 # Validate arguments
-if [[ -z $tenant_id || -z $subscription_id || -z $subscription_name || -z $location || -z $organization_url || -z $project_name || -z $prefix || -z $env ]]; then
+##if [[ -z $tenant_id || -z $subscription_id || -z $subscription_name || -z $location || -z $organization_url || -z $project_name || -z $prefix || -z $env ]]; then
+if [[ -z $tenant_id || -z $subscription_id || -z $subscription_name || -z $location || -z $prefix || -z $env ]]; then
   echo 'ERROR: One or more required options are missing'
   exit 1
 fi

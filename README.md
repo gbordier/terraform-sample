@@ -1,5 +1,6 @@
 # Azure DevOps Terraform Template
 
+## secret management with Az Devops
 ** gbordier **
 customized : for vm / agora like deply
 
@@ -13,9 +14,13 @@ to manually run the terraform script see test.sh, we need to use the same steps 
 - use az login to get permissions 
 - pull secrets from the $PREFIX-$ENV-pl-kv keyvault and load them as variables
 
+### pipeline secret management with Az Devops
+using the  template at ../templates/pipeline-secrets.yml pulls the secret from the keyvault that has been created by the environment script.
 
 
+SP_ID and SP_PASSWORD are pulled from the keyvault and used to login to azure
 
+## next steps : use github actions instead of Azure DevOps
 
 
 The environment script is heavily inspired by [Maninderjit Bindra](https://twitter.com/maniSbindra)'s article on [Medium](https://medium.com/@maninder.bindra/creating-a-single-azure-devops-yaml-pipeline-to-provision-multiple-environments-using-terraform-e6d05343cae2).

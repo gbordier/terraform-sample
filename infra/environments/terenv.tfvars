@@ -1,9 +1,6 @@
 location = "northeurope"
-prefix = "ter"
-env = "terenv"
-environment = "terenv"
 
-site-code ="lev"
+
 cr_sku = "Basic"
 
 //subscription_id = "08cbb954-de41-4f3e-9e24-cc915f96714b"
@@ -15,18 +12,18 @@ platform_connectivity_subscription = "08cbb954-de41-4f3e-9e24-cc915f96714b"
 vnetAddressSpace= ["10.252.162.0/24"]
 subnetAddressSpace= ["10.252.162.0/28"]
 
-
+/*
 site_code                          = "sdc3"
 client_code                        = "dsb"
 site_code_hub                      = "sdc3"
 client_code_hub                    = "agr"
 aip_code_hub                       = "0000"
-
+*/
 
 ## region for carbon black
 region                             = "EMEA"
 
-
+/*
 
 role_assignements = {
 
@@ -56,3 +53,4 @@ role_assignements = {
       rg_scope_name        = "ter-terenv-spoke-rg"
     }
 }
+*/
