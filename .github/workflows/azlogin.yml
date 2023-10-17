@@ -45,7 +45,8 @@ jobs:
           ARM_USE_AZUREAD: true ## to acces TF storage account
         run: |
           echo "or env is ${{ env.ENV }}"
-      
+          echo "or env is $ENV  (env var)"
+          echo "or env is $PREFIX  (env var)"
           echo ${PWD}
 
           
