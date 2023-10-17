@@ -1,5 +1,11 @@
 name: Run Azure Login with OIDC
 
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+  workflow_dispatch:
+
 permissions:
   id-token: write
   contents: read
@@ -7,6 +13,7 @@ jobs:
   build-and-deploy:
     environment: dev
     runs-on: ubuntu-latest
+    
     steps:
       - name: 'Az CLI login'
         uses: azure/login@v1
