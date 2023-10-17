@@ -5,7 +5,9 @@ on:
     branches: [ "main" ]
   pull_request:
   workflow_dispatch:
-
+env:
+  PREFIX: "adx"
+  ENV: "dev"
 permissions:
   id-token: write
   contents: read
@@ -26,3 +28,22 @@ jobs:
         run: |
           az account show
           az group list
+      - name: 'Azure/get-keyvault-secrets'
+        with: 
+          keyvault: $(PREFIX)-$(ENV)-pl-kv
+          secrets: "SA-ACCOUNT-KEY,SP-ID,SP-PASSWORD,TENANT-ID,SUBSCRIPTION-ID"
+        id : "secrets"
+      - name: 'init terraform'
+        run: |
+          echo "env is $ENV"
+          echo "or env is ${{ env.ENV }}"
+          echo "or sub  is ${{ secrets.SUBSCRIPTION-ID }}"
+          echo "or SA  is ${{ steps.secrets.SUBSCRIPTION-ID }}"
+          
+          az account set --subscription $(SUBSCRIPTION-ID)
+          ##sudo snap install terraform --classic
+          terraform -v
+          cd $(System.DefaultWorkingDirectory)/adx
+          terraform init -backend-config="storage_account_name=$(PREFIX)$(ENV)tfsa" -backend-config="container_name=terraform-state" -backend-config="access_key=$(SA-ACCOUNT-KEY)" -backend-config="key=terraform.tfstate"
+          terraform plan -var-file=./tf-vars/$(ENV).tfvars -var="client_id=$(SP-ID)" -var="client_secret=$(SP-PASSWORD)" -var="tenant_id=$(TENANT-ID)" -var="subscription_id=$(SUBSCRIPTION-ID)" -out="out.plan"
+
