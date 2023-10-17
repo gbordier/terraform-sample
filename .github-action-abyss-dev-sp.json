@@ -1,0 +1,52 @@
+[
+  {
+    "accountEnabled": true,
+    "addIns": [],
+    "alternativeNames": [],
+    "appDescription": null,
+    "appDisplayName": "github-action-abyss-dev",
+    "appId": "9f0714d8-9e7f-42c4-bde2-8fb576572b07",
+    "appOwnerOrganizationId": "d1d92357-0fd1-4f9d-853e-a2bf3d687614",
+    "appRoleAssignmentRequired": false,
+    "appRoles": [],
+    "applicationTemplateId": null,
+    "createdDateTime": "2023-10-15T16:45:48Z",
+    "deletedDateTime": null,
+    "description": null,
+    "disabledByMicrosoftStatus": null,
+    "displayName": "github-action-abyss-dev",
+    "homepage": null,
+    "id": "9b99b9be-2a0a-47c9-8fd0-587d65ae1d60",
+    "info": {
+      "logoUrl": null,
+      "marketingUrl": null,
+      "privacyStatementUrl": null,
+      "supportUrl": null,
+      "termsOfServiceUrl": null
+    },
+    "keyCredentials": [],
+    "loginUrl": null,
+    "logoutUrl": null,
+    "notes": null,
+    "notificationEmailAddresses": [],
+    "oauth2PermissionScopes": [],
+    "passwordCredentials": [],
+    "preferredSingleSignOnMode": null,
+    "preferredTokenSigningKeyThumbprint": null,
+    "replyUrls": [],
+    "resourceSpecificApplicationPermissions": [],
+    "samlSingleSignOnSettings": null,
+    "servicePrincipalNames": [
+      "9f0714d8-9e7f-42c4-bde2-8fb576572b07"
+    ],
+    "servicePrincipalType": "Application",
+    "signInAudience": "AzureADandPersonalMicrosoftAccount",
+    "tags": [],
+    "tokenEncryptionKeyId": null,
+    "verifiedPublisher": {
+      "addedDateTime": null,
+      "displayName": null,
+      "verifiedPublisherId": null
+    }
+  }
+]

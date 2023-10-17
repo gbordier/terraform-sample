@@ -1,4 +1,8 @@
 
+
+
+
+
 PREFIX=ter
 ENV=terenv
 
@@ -14,7 +18,9 @@ eval $(az keyvault secret list --vault-name $keyVaultName --query "[].[name]" -o
 folder=${PWD##*/}
 
 terraform init --reconfigure  -backend-config="storage_account_name=${PREFIX}${ENV}tfsa" \
-	-backend-config="container_name=terraform-state" -backend-config="access_key=$SA_ACCOUNTKEY" \
-	-backend-config="key=${PWD##*/}.terraform.tfstate" -backend-config="resource_group_name=ter-terenv-tf-rg"
+	-backend-config="container_name=terraform-state" \
+	-backend-config="access_key=$SA_ACCOUNTKEY" \
+	-backend-config="key=${PWD##*/}.terraform.tfstate" \
+	-backend-config="resource_group_name=${PREFIX}-${ENV}-tf-rg"
 
 terraform plan -var-file=./environments/${ENV}.tfvars -out="out.plan"
