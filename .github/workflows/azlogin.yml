@@ -73,4 +73,22 @@ jobs:
           terraform plan -var-file=./environments/${ENV}.tfvars \
             -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}"\
             -out="out.plan"
+      
+      - name: Terraform Validate
+        shell: bash
+        run: |
+          terraform validate
+        working-directory: ${{ env.TF_DIRECTORY }}
+        
 
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_DIRECTORY }}
+        env:
+          ## this replaces -backend-config setup for OIDC 
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}    
+          ARM_USE_AZUREAD: true ## to acces TF storage account
+        run: |
+          terraform apply ./out.plan
