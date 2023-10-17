@@ -28,7 +28,8 @@ jobs:
         run: |
           az account show
           az group list
-      - name: 'Azure/get-keyvault-secrets'
+      - name: 'get-keyvault-secrets'
+        uses: Azure/get-keyvault-secrets@v1
         with: 
           keyvault: $(PREFIX)-$(ENV)-pl-kv
           secrets: "SA-ACCOUNT-KEY,SP-ID,SP-PASSWORD,TENANT-ID,SUBSCRIPTION-ID"
@@ -39,7 +40,7 @@ jobs:
           echo "or env is ${{ env.ENV }}"
           echo "or sub  is ${{ secrets.SUBSCRIPTION-ID }}"
           echo "or SA  is ${{ steps.secrets.SUBSCRIPTION-ID }}"
-          
+
           az account set --subscription $(SUBSCRIPTION-ID)
           ##sudo snap install terraform --classic
           terraform -v
