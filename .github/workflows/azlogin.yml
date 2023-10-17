@@ -8,7 +8,7 @@ on:
 env:
   PREFIX: "adx"
   ENV: "dev"
-  TF_DIRECTORY: "../adx"
+  TF_DIRECTORY: "adx"
 permissions:
   id-token: write
   contents: read
@@ -18,6 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
       - name: 'Az CLI login'
         uses: azure/login@v1
         with:
