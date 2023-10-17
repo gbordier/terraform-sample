@@ -45,7 +45,7 @@ jobs:
         run: |
           echo "env is $ENV"
           echo "or env is ${{ env.ENV }}"
-          echo "or sub  is ${{ secrets.SUBSCRIPTION_ID }}"
+          echo "or sub  is ${{ secrets.AZURE_SUBSCRIPTION_ID }}"
       
           echo ${PWD}
 
