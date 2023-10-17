@@ -31,6 +31,7 @@ jobs:
       - name: 'Run az commands'
         run: |
           az account show
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           az group list
 
       - name: 'init terraform'
@@ -49,7 +50,7 @@ jobs:
       
           echo ${PWD}
 
-          az account set --subscription ${{ secrets.SUBSCRIPTION_ID }}
+          
           ##sudo snap install terraform --classic
           terraform -v
           ## cd /adx
