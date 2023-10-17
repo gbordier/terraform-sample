@@ -48,7 +48,9 @@ jobs:
           echo "or env is $ENV  (env var)"
           echo "or prefix is $PREFIX  (env var)"
           echo ${PWD}
-
+          ## az storage container list --account-name ${PREFIX}${ENV}tfsa --auth-mode login --query "[].name"
+          az storage container show --account-name ${PREFIX}${ENV}tfsa --auth-mode login --name "terraform-state"
+          az storage blob list --account-name ${PREFIX}${ENV}tfsa --container-name "terraform-state" --auth-mode login 
           
           ##sudo snap install terraform --classic
           terraform -v
