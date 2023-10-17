@@ -44,21 +44,25 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}    
           ARM_USE_AZUREAD: true ## to acces TF storage account
         run: |
-          echo "or env is ${{ env.ENV }}"
-          echo "or env is $ENV  (env var)"
-          echo "or prefix is $PREFIX  (env var)"
           echo ${PWD}
-          ## az storage container list --account-name ${PREFIX}${ENV}tfsa --auth-mode login --query "[].name"
-          az storage container show --account-name ${PREFIX}${ENV}tfsa --auth-mode login --name "terraform-state"
-          az storage blob list --account-name ${PREFIX}${ENV}tfsa --container-name "terraform-state" --auth-mode login 
           
-          ##sudo snap install terraform --classic
-          terraform -v
-          ## cd /adx
+          ## az storage container show --account-name ${PREFIX}${ENV}tfsa --auth-mode login --name "terraform-state"
+          ## az storage blob list --account-name ${PREFIX}${ENV}tfsa --container-name "terraform-state" --auth-mode login 
+          
+          ## sudo snap install terraform --classic
+          ## terraform -v
           terraform init -backend-config="use_azuread_auth=true" \
             -backend-config="storage_account_name=${PREFIX}${ENV}tfsa" \
             -backend-config="container_name=terraform-state" \
             -backend-config="key=terraform.tfstate"
 
-
+      - name: Terraform Init
+        working-directory: ${{ env.TF_DIRECTORY }}
+        run: |
+          echo "tenant id : $ARM_TENANT_ID"
+          echo "tenant id : ${{ secrets.AZURE_TENANT_ID }}"
+          
+          terraform plan -var-file=./tf-vars/$(ENV).tfvars \
+            -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}"\
+            -out="out.plan"
 
