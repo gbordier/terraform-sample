@@ -9,6 +9,7 @@ env:
   PREFIX: "adx"
   ENV: "dev"
   TF_DIRECTORY: "adx"
+  TF_STATE_PREFIX: "adx"
 
 permissions:
   id-token: write
@@ -55,7 +56,7 @@ jobs:
           terraform init -backend-config="use_azuread_auth=true" \
             -backend-config="storage_account_name=${PREFIX}${ENV}tfsa" \
             -backend-config="container_name=terraform-state" \
-            -backend-config="key=terraform.tfstate"
+            -backend-config="key=${TF_STATE_PREFIX}.terraform.tfstate"
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_DIRECTORY }}
