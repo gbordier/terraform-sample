@@ -45,11 +45,11 @@ jobs:
         run: |
           echo "env is $ENV"
           echo "or env is ${{ env.ENV }}"
-          echo "or sub  is ${{ secrets.SUBSCRIPTION-ID }}"
-          echo "or SA  is ${{ steps.secrets.SUBSCRIPTION-ID }}"
-          echo $(PWD)
+          echo "or sub  is ${{ secrets.SUBSCRIPTION_ID }}"
+      
+          echo ${PWD}
 
-          az account set --subscription ${{ secrets.SUBSCRIPTION-ID }}
+          az account set --subscription ${{ secrets.SUBSCRIPTION_ID }}
           ##sudo snap install terraform --classic
           terraform -v
           ## cd /adx
