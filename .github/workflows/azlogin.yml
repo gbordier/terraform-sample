@@ -29,12 +29,7 @@ jobs:
         run: |
           az account show
           az group list
-      - name: 'get-keyvault-secrets'
-        uses: Azure/get-keyvault-secrets@v1
-        with: 
-          keyvault: $(PREFIX)-$(ENV)-pl-kv
-          secrets: "SA-ACCOUNT-KEY,SP-ID,SP-PASSWORD,TENANT-ID,SUBSCRIPTION-ID"
-        id : "secrets"
+
       - name: 'init terraform'
         working-directory: ${{ env.TF_DIRECTORY }}
         env:

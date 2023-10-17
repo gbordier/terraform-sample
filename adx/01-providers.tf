@@ -1,5 +1,6 @@
 provider "azurerm" {
   features {}
+  
   }
 
 
@@ -12,3 +13,5 @@ provider "azurerm" {
   alias           = "connectivity"
   subscription_id = var.lz_subscription_id
 }
+
+

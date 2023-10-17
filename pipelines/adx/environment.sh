@@ -7,6 +7,14 @@ set -euo pipefail
 
 ## this will modify the .tfvars file to add subscriotion id 
 
+## note : all this should be secretless 
+## 3 versions possible for setting up the perms
+## 1) Devops or github action  (OIDC)
+## 2) terraform with a SP and SP password or OIDC
+## 3) enterprise scale per subscription SP or per storage group SP 
+
+
+
 function usage {
   echo "USAGE"
   echo "  $0 OPTIONS COMMAND"
@@ -33,6 +41,202 @@ function usage {
   echo "  Azure CLI, Azure CLI devops extension, jq"
   exit 0
 }
+
+
+function up-oidc {
+  ## in this function we will configure github and terraform to use OIDC
+  
+  echo "Login to Azure... with administrator level account to create basic structures"
+  [[ $(az account get-access-token -o tsv --query "expiresOn")  < $(date +"%Y-%m-%d %H:%M:%S") ]] &&  az login --tenant "$tenant_id"
+
+  
+  echo "Setting active subscription..."
+  az account set --subscription "$subscription_id"
+  echo
+
+  echo "Creating a resource group for pipeline resources..."
+  pipeline_rg=${prefix}-${env}-pl-rg
+  r=$(az group create -n "$pipeline_rg" -l "$location")
+  pipeline_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
+  echo "Done. ID: $pipeline_rg_id"
+  echo
+
+  echo "Creating a key vault for pipeline secrets..."
+  pipeline_kv=${prefix}-${env}-pl-kv
+  r=$(az keyvault create -n "$pipeline_kv" -g "$pipeline_rg" -l "$location")
+  pipeline_kv_id=$(echo $r | jq '.id' | sed 's/"//g')
+  echo "Done. ID: $pipeline_kv_id"
+  echo
+
+  echo "Creating a resource group for Terraform resources..."
+  terraform_rg=${prefix}-${env}-tf-rg
+  r=$(az group create -n "$terraform_rg" -l "$location")
+  terraform_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
+  echo "Done. ID: $terraform_rg_id"
+  echo
+
+  echo "Creating a storage account for Terraform files..."
+  terraform_sa=${prefix}${env}tfsa
+  r=$(az storage account create --resource-group "$terraform_rg" --name "$terraform_sa" --sku "Standard_LRS" --encryption-services "blob")
+  terraform_sa_id=$(echo $r | jq '.id' | sed 's/"//g')
+  ### terraform_sa_account_key=$(az storage account keys list --resource-group "$terraform_rg" --account-name "$terraform_sa" --query "[0].value" -o "tsv")
+  ## **
+  # add   terraform sp delegation on storage account with Data Contributor role
+  ## **
+
+  echo "Done. ID: $terraform_sa_id"
+  echo
+
+  echo "Creating a storage container for Terraform files..."
+  r=$(az storage container create --name "terraform-state" --account-name "$terraform_sa" --account-key "$terraform_sa_account_key")
+  echo "Done."
+  echo
+
+  echo "Adding the storage account key to the key vault..."
+  r=$(az keyvault secret set --vault-name "$pipeline_kv" --name "SA-ACCOUNT-KEY" --value "$terraform_sa_account_key")
+  echo "Done."
+  echo
+
+  echo "Creating a resource groups for provisioned resources..."
+  main_rg=${prefix}-${env}-main-rg
+  
+  r=$(az group create -n "$main_rg" -l "$location")
+  main_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
+
+  spoke_rg=${prefix}-${env}-spoke-rg
+  r=$(az group create -n "$spoke_rg" -l "$location")
+  spoke_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
+
+
+  func_rg=${prefix}-${env}-func-rg
+  r=$(az group create -n "$func_rg" -l "$location")
+  func_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
+  echo "Done. IDs: $main_rg_id $func_rg_id $spoke_rg_id"
+  echo
+
+  echo "Creating a service principal for Terraform..."
+  terraform_sp=http://${prefix}-${env}-tf-sp
+  r=$(az ad sp create-for-rbac -n $terraform_sp --role "contributor" --scopes "$terraform_sa_id" "$main_rg_id" "$func_rg_id" "$spoke_rg_id")
+  terraform_sp_name=$(echo $r | jq '.name' | sed 's/"//g')
+  terraform_sp_app_id=$(echo $r | jq '.appId' | sed 's/"//g')
+  terraform_sp_password=$(echo $r | jq '.password' | sed 's/"//g')
+  terraform_sp_id=$(az ad sp list --spn "$terraform_sp_name" --query "[0].objectId" -o "tsv")
+  echo "Done. ID: $terraform_sp_id"
+  echo
+
+  echo "Adding the service principal details to the key vault..."
+  r=$(az keyvault secret set --vault-name "$pipeline_kv" --name "SP-ID" --value "$terraform_sp_app_id")
+  r=$(az keyvault secret set --vault-name "$pipeline_kv" --name "SP-PASSWORD" --value "$terraform_sp_password")
+  r=$(az keyvault secret set --vault-name "$pipeline_kv" --name "TENANT-ID" --value "$tenant_id")
+  r=$(az keyvault secret set --vault-name "$pipeline_kv" --name "SUBSCRIPTION-ID" --value "$subscription_id")
+  echo "Done."
+  echo
+
+  
+
+  if [[ -z $organization_url ]] ; then
+    echo "No Azure DevOps orgnization do not create service connection."
+    echo "For manual run, we need the current user to be granted reader right on $pipeline_kv_id"
+    echo "for github action we need to created a federated identiy"
+    
+    userupn=$(az account show --query user.name -o tsv)
+    userid=$(az ad user list --query "[?mail=='$userupn'].userPrincipalName"  -o tsv )
+
+    r=$(az keyvault set-policy --name $pipeline_kv --upn $userid --subscription "$subscription_id" --secret-permissions "get" "list")
+    azdo_sp_id=
+    azdo_ra_id=
+    azdo_sc_id=
+    
+  else
+    echo "Creating a service principal for Azure DevOps..."
+    azdo_sp=http://${prefix}-${env}-azdo-sp
+    r=$(az ad sp create-for-rbac -n "$azdo_sp" --skip-assignment)
+    azdo_sp_name=$(echo $r | jq '.name' | sed 's/"//g')
+    azdo_sp_app_id=$(echo $r | jq '.appId' | sed 's/"//g')
+    azdo_sp_password=$(echo $r | jq '.password' | sed 's/"//g')
+    azdo_sp_id=$(az ad sp list --spn "$azdo_sp_name" --query "[0].objectId" -o "tsv")
+    echo "Done. ID: $azdo_sp_id"
+    echo
+
+    echo "Wait for a minute..."
+    sleep 60
+    echo "Done."
+    echo
+
+    echo "Creating role assignment for Azure DevOps service principal..."
+    r=$(az role assignment create --assignee "$azdo_sp_app_id" --scope "$pipeline_kv_id" --role "reader")
+    azdo_ra_id=$(echo $r | jq '.id' | sed 's/"//g')
+    azdo_ra_name=$(echo $r | jq '.name' | sed 's/"//g')
+    echo "Done. ID: $azdo_ra_id"
+    echo
+
+    echo "Setting key vault policy..."
+    r=$(az keyvault set-policy --name $pipeline_kv --spn "$azdo_sp_app_id" --subscription "$subscription_id" --secret-permissions "get")
+    echo "Done."
+    echo
+
+
+    
+    echo "Creating Azure DevOps service connection..."
+    echo "When you are prompted for principal key, use: $azdo_sp_password"
+    azdo_sc=${prefix}-${env}-azdo-sc
+    r=$(az devops service-endpoint azurerm create --azure-rm-service-principal-id "$azdo_sp_app_id" --azure-rm-tenant-id "$tenant_id" --azure-rm-subscription-id "$subscription_id" --azure-rm-subscription-name "$subscription_name" --name "$azdo_sc" --organization "$organization_url" --project "$project_name")
+    azdo_sc_id=$(echo $r | jq '.id' | sed 's/"//g')
+    echo "Done. ID: $azdo_sc_id"
+
+  fi
+  echo "Created the following resources:"
+  echo "  $pipeline_rg ($pipeline_rg_id)"
+  echo "  $pipeline_kv ($pipeline_kv_id)"
+  echo "  $terraform_rg ($terraform_rg_id)"
+  echo "  $terraform_sa ($terraform_sa_id)"
+  echo "  $main_rg ($main_rg_id)"
+  echo "  $spoke_rg ($spoke_rg_id)"
+  
+  echo "  $func_rg ($func_rg_id)"
+  echo "  $terraform_sp ($terraform_sp_id)"
+  if [[ -z $azdo_sp_id ]]; then 
+    echo "no azdevops"
+  else
+    echo "  $azdo_sp ($azdo_sp_id)"
+    echo "  $azdo_ra_name ($azdo_ra_id)"
+    echo "  $azdo_sc ($azdo_sc_id)"
+  fi
+
+
+[[ -d ./tf-vars ]] || mkdir ./tf-vars
+
+
+
+cat > ./tf-vars/${env}.json << EOF
+{
+  "pipeline-rg" : "${pipeline_rg_id}",
+  "terraform-rg" : "${terraform_rg_id}",
+  "main-rg" : "${main_rg_id}",
+  "spoke-rg" : "${spoke_rg_id}",
+   "pipeline-kv" :  "${pipeline_kv_id}"
+}
+EOF
+
+folder=${PWD##*/}
+tfenvfile=../../$folder/environments/${env}.tfvars
+
+if [[ -f $tfenvfile ]] ; then
+  sed -i -e "s/lz_subscription_id.*/lz_subscription_id = \"${subscription_id}\"/ig" $tfenvfile
+
+else
+  echo "lz_subscription_id = \"${subscription_id}\"" >> $tfenvfile
+fi
+
+  echo
+  echo "All Done."
+  echo "Remember to verify the Azure DevOps service connection at $organization_url/$project_name/_settings/adminservices?resourceId=$azdo_sc_id"
+  echo
+
+  exit 0
+}
+
+
 
 function up {
   echo "Login to Azure..."
@@ -187,6 +391,8 @@ function up {
     echo "  $azdo_ra_name ($azdo_ra_id)"
     echo "  $azdo_sc ($azdo_sc_id)"
   fi
+
+
 [[ -d ./tf-vars ]] || mkdir ./tf-vars
 
 
