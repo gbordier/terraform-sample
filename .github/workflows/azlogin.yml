@@ -58,11 +58,18 @@ jobs:
 
       - name: Terraform Init
         working-directory: ${{ env.TF_DIRECTORY }}
+        env:
+          ## this replaces -backend-config setup for OIDC 
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}    
+          ARM_USE_AZUREAD: true ## to acces TF storage account
         run: |
-          echo "tenant id : $ARM_TENANT_ID"
+
           echo "tenant id : ${{ secrets.AZURE_TENANT_ID }}"
           
-          terraform plan -var-file=./tf-vars/$(ENV).tfvars \
+          terraform plan -var-file=./tf-vars/${ENV}.tfvars \
             -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}"\
             -out="out.plan"
 
