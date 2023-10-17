@@ -46,7 +46,7 @@ jobs:
         run: |
           echo "or env is ${{ env.ENV }}"
           echo "or env is $ENV  (env var)"
-          echo "or env is $PREFIX  (env var)"
+          echo "or prefix is $PREFIX  (env var)"
           echo ${PWD}
 
           
@@ -54,7 +54,7 @@ jobs:
           terraform -v
           ## cd /adx
           terraform init -backend-config="use_azuread_auth=true" \
-            -backend-config="storage_account_name=$(PREFIX)$(ENV)tfsa" \
+            -backend-config="storage_account_name=${PREFIX}${ENV}tfsa" \
             -backend-config="container_name=terraform-state" \
             -backend-config="key=terraform.tfstate"
 
