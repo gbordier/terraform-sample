@@ -1,4 +1,4 @@
-name: Run Azure Login with OIDC
+name: Deploy
 
 on:
   push:
@@ -49,14 +49,48 @@ jobs:
           echo ${PWD}
           
           ## az storage container show --account-name ${PREFIX}${ENV}tfsa --auth-mode login --name "terraform-state"
-          ## az storage blob list --account-name ${PREFIX}${ENV}tfsa --container-name "terraform-state" --auth-mode login 
+          ## az storage blob list --account-name ${PREFIX}${ENV}tfsa --container-name "${TF_STATE_PREFIX}-terraform-state" --auth-mode login 
           
           ## sudo snap install terraform --classic
           ## terraform -v
           terraform init -backend-config="use_azuread_auth=true" \
             -backend-config="storage_account_name=${PREFIX}${ENV}tfsa" \
-            -backend-config="container_name=terraform-state" \
-            -backend-config="key=${TF_STATE_PREFIX}.terraform.tfstate"
+            -backend-config="container_name=${TF_STATE_PREFIX}-terraform-state" \
+            -backend-config="key=terraform.tfstate"
+
+      - name : import
+        working-directory: ${{ env.TF_DIRECTORY }}
+        run: |
+        
+          file=../../conf/${ENV}.json
+
+          if [[ -f $file ]]; then 
+
+            mainrg=$( az group list --query "[?name=='${PREFIX}-${ENV}-main-rg']" -o tsv)
+            spokerg=$( az group list --query "[?name=='${PREFIX}-${ENV}-spoke-rg']" -o tsv)
+
+            [[ -f "./import.tf" ]] && rm ./import.tf
+
+            if [[ ! -z $mainrg ]]; then 
+              cat >> ./import.tf << EOF
+              import {
+                  to = azurerm_resource_group.main
+                  id = "$mainrg"
+              }
+              EOF
+
+            fi
+
+            if [[ ! -z $spokerg ]]; then 
+              cat >> ./import.tf << EOF
+              import {
+                  to = azurerm_resource_group.spoke
+                  id = "$spokerg"
+              }
+              EOF
+
+            fi
+          fi
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_DIRECTORY }}

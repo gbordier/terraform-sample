@@ -156,7 +156,7 @@ function up-oidc {
   
   ## create app and service principal for pipelines
 
-  envconffile=$confdir/$ENV.json
+  envconffile=$confdir/.$ENV.json
   appname=github-action-${PROJECT}-${ENV}
 
   [[ -f $confdir/.$appname.json ]] && appjson=$(cat ./.$appname.json) || appjson=$(az ad app create --display-name $appname)
@@ -592,10 +592,13 @@ if [[ -z $tenant_id || -z $subscription_id || -z $subscription_name || -z $locat
   exit 1
 fi
 
+use_oidc=$USE_OIDC
+
 # Execute command
 case $command in
   up)
-  up
+  [[ $use_oidc == true ]] && up-oidc || up
+  
   ;;
   down)
   down
