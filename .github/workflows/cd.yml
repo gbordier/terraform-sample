@@ -77,7 +77,7 @@ jobs:
                   to = azurerm_resource_group.main
                   id = "$mainrg"
               }
-              EOF
+          EOF
 
             fi
 
@@ -87,7 +87,7 @@ jobs:
                   to = azurerm_resource_group.spoke
                   id = "$spokerg"
               }
-              EOF
+          EOF
 
             fi
           fi

@@ -111,7 +111,7 @@ function up-oidc {
   terraform_sa_id=$(echo $r | jq '.id' | sed 's/"//g')
 
   echo "Creating a storage container for Terraform files..."
-  r=$(az storage container create --name "terraform-state" --account-name "$terraform_sa" --auth-mode login )
+  r=$(az storage container create --name "$folder-terraform-state" --account-name "$terraform_sa" --auth-mode login )
   echo "Done."
   echo
 
@@ -314,7 +314,7 @@ function up {
   echo
 
   echo "Creating a storage container for Terraform files..."
-  r=$(az storage container create --name "terraform-state" --account-name "$terraform_sa" --account-key "$terraform_sa_account_key")
+  r=$(az storage container create --name "$folder-terraform-state" --account-name "$terraform_sa" --account-key "$terraform_sa_account_key")
   echo "Done."
   echo
 
