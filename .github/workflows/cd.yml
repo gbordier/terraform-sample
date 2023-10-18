@@ -68,7 +68,8 @@ jobs:
 
             mainrg=$( az group list --query "[?name=='${PREFIX}-${ENV}-main-rg']" -o tsv)
             spokerg=$( az group list --query "[?name=='${PREFIX}-${ENV}-spoke-rg']" -o tsv)
-
+            echo "main rg id is $mainrg "
+            echo "spoke rg id is $spokerg "
             [[ -f "./import.tf" ]] && rm ./import.tf
 
             if [[ ! -z $mainrg ]]; then 
