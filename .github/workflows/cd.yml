@@ -66,8 +66,8 @@ jobs:
 
           if [[ -f $file ]]; then 
 
-            mainrg=$( az group list --query "[?name=='${PREFIX}-${ENV}-main-rg']" -o tsv)
-            spokerg=$( az group list --query "[?name=='${PREFIX}-${ENV}-spoke-rg']" -o tsv)
+            mainrg=$( az group list --query "[?name=='${PREFIX}-${ENV}-main-rg'].id" -o tsv)
+            spokerg=$( az group list --query "[?name=='${PREFIX}-${ENV}-spoke-rg'].id" -o tsv)
             echo "main rg id is $mainrg "
             echo "spoke rg id is $spokerg "
             [[ -f "./import.tf" ]] && rm ./import.tf

@@ -138,13 +138,21 @@ function up-oidc {
   if [[ ! -z ${github_org} ]]; then
     envconffile=$confdir/.$env.json
     appname=github_action-${github_repo}-${env}
-
+    appid=$(az ad app list --query "[?displayName=='$appname'].appId" -o tsv --all)
     [[ -f $confdir/.$appname.json ]] && appjson=$(cat $confdir/.$appname.json) || appjson=$(az ad app create --display-name $appname)
     [[ -f $confdir/.$appname.json ]] || echo $appjson > $confdir/.$appname.json	
     appid=$(echo $appjson | jq -r '.appId')
+    # doublecheck
+    appid=$(az ad app list --query "[?appId=='$appid'].appId" -o tsv --all)
+    
     sp=$(az ad sp list --query "[?appId=='$appid'].id" -o tsv --all)
     [[ -z $sp ]] && sp=$(az ad sp create --id $appid --query id -o tsv)
     ##az ad sp list --all --query "[?appId=='$appid']"  > ./.$appname-sp.json
+
+
+    gh  secret set AZURE_SUBSCRIPTION_ID  --body "$subscription_id"
+    gh  secret set AZURE_CLIENT_ID  --body "$appid"
+    gh  secret set AZURE_TENANT_ID  --body "$tenant_id"
 
     ## create github  federatoin for the service principal
     if [[ ! -z $github_environment ]]; then
@@ -169,7 +177,7 @@ EOF
       {
           "name": "Testing",
           "issuer": "https://token.actions.githubusercontent.com",    
-          "subject": "repo:${github_org}/${github_repo}:refs:ref/heads/$BRANCH",
+          "subject": "repo:${github_org}/${github_repo}:ref:refs/heads/$BRANCH",
           "description": "Testing",
           "audiences": [
               "api://AzureADTokenExchange"
