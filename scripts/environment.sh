@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+confdir=../conf
 
 ## modified gbordier
 ## should only setup the terraform related envionrment (not the main rg or spole rg)
@@ -28,6 +29,7 @@ function usage {
   echo "  --project-name       Azure DevOps project name"
   echo "  --prefix             Short prefix for all the resource names"
   echo "  --env                Environment identifier"
+  echo "  --folder             Folder to prepare the Terraforom state for to separate the state for different part of the infrastructure"
   echo "  --help, -h           Display help"
   echo
   echo "COMMANDS"
@@ -42,10 +44,63 @@ function usage {
   exit 0
 }
 
+function output-file {
+
+
+cat > $envconffile << EOF
+{
+  "pipeline" : {
+    "resourceGroups" : {
+      "pipeline-rg" : "${pipeline_rg_id}",
+      "terraform-rg" : "${terraform_rg_id}"
+    },
+    "keyvault" : {
+      "pipeline-kv" :  "${pipeline_kv_id}"
+    }
+   },
+  "terraform" : {
+    "resourceGroups" : {
+     "main-rg" : "${main_rg_id}",
+     "spoke-rg" : "${spoke_rg_id}"
+    }
+  }
+   
+}
+EOF
+
+tfenvfile=../infra/$folder/environments/${env}.tfvars
+
+if [[ -f $tfenvfile ]] ; then
+  sed -i -e "s/lz_subscription_id.*/lz_subscription_id = \"${subscription_id}\"/ig" $tfenvfile
+else
+  echo "lz_subscription_id = \"${subscription_id}\"" >> $tfenvfile
+fi
+
+echo "Created the following resources:"
+  echo "  $pipeline_rg ($pipeline_rg_id)"
+  echo "  $pipeline_kv ($pipeline_kv_id)"
+  echo "  $terraform_rg ($terraform_rg_id)"
+  echo "  $terraform_sa ($terraform_sa_id)"
+  echo "  $main_rg ($main_rg_id)"
+  echo "  $spoke_rg ($spoke_rg_id)"
+  
+  echo "  $func_rg ($func_rg_id)"
+  echo "  $terraform_sp ($terraform_sp_id)"
+  if [[ -z $azdo_sp_id ]]; then 
+    echo "no azdevops"
+  else
+    echo "  $azdo_sp ($azdo_sp_id)"
+    echo "  $azdo_ra_name ($azdo_ra_id)"
+    echo "  $azdo_sc ($azdo_sc_id)"
+  fi
+
+ 
+
+}
 
 function up-oidc {
   ## in this function we will configure github and terraform to use OIDC
-  
+  ## this is much simplier since we do not need a keyvault to store secrets such as the storage account key or the azrm service prinicpal secret
   echo "Login to Azure... with administrator level account to create basic structures"
   [[ $(az account get-access-token -o tsv --query "expiresOn")  < $(date +"%Y-%m-%d %H:%M:%S") ]] &&  az login --tenant "$tenant_id"
 
@@ -61,12 +116,7 @@ function up-oidc {
   echo "Done. ID: $pipeline_rg_id"
   echo
 
-  echo "Creating a key vault for pipeline secrets..."
-  pipeline_kv=${prefix}-${env}-pl-kv
-  r=$(az keyvault create -n "$pipeline_kv" -g "$pipeline_rg" -l "$location")
-  pipeline_kv_id=$(echo $r | jq '.id' | sed 's/"//g')
-  echo "Done. ID: $pipeline_kv_id"
-  echo
+  ## there is no need for a keyvault since terraform will use the pipeline service principal
 
   echo "Creating a resource group for Terraform resources..."
   terraform_rg=${prefix}-${env}-tf-rg
@@ -79,25 +129,14 @@ function up-oidc {
   terraform_sa=${prefix}${env}tfsa
   r=$(az storage account create --resource-group "$terraform_rg" --name "$terraform_sa" --sku "Standard_LRS" --encryption-services "blob")
   terraform_sa_id=$(echo $r | jq '.id' | sed 's/"//g')
-  ### terraform_sa_account_key=$(az storage account keys list --resource-group "$terraform_rg" --account-name "$terraform_sa" --query "[0].value" -o "tsv")
-  ## **
-  # add   terraform sp delegation on storage account with Data Contributor role
-  ## **
-
-  echo "Done. ID: $terraform_sa_id"
-  echo
 
   echo "Creating a storage container for Terraform files..."
-  r=$(az storage container create --name "terraform-state" --account-name "$terraform_sa" --account-key "$terraform_sa_account_key")
+  r=$(az storage container create --name "terraform-state" --account-name "$terraform_sa" --auth-mode login )
   echo "Done."
   echo
 
-  echo "Adding the storage account key to the key vault..."
-  r=$(az keyvault secret set --vault-name "$pipeline_kv" --name "SA-ACCOUNT-KEY" --value "$terraform_sa_account_key")
-  echo "Done."
-  echo
 
-  echo "Creating a resource groups for provisioned resources..."
+  echo "Creating two resource groups for provisioned resources..."
   main_rg=${prefix}-${env}-main-rg
   
   r=$(az group create -n "$main_rg" -l "$location")
@@ -113,27 +152,61 @@ function up-oidc {
   func_rg_id=$(echo $r | jq '.id' | sed 's/"//g')
   echo "Done. IDs: $main_rg_id $func_rg_id $spoke_rg_id"
   echo
+  
+  
+  ## create app and service principal for pipelines
 
-  echo "Creating a service principal for Terraform..."
-  terraform_sp=http://${prefix}-${env}-tf-sp
-  r=$(az ad sp create-for-rbac -n $terraform_sp --role "contributor" --scopes "$terraform_sa_id" "$main_rg_id" "$func_rg_id" "$spoke_rg_id")
-  terraform_sp_name=$(echo $r | jq '.name' | sed 's/"//g')
-  terraform_sp_app_id=$(echo $r | jq '.appId' | sed 's/"//g')
-  terraform_sp_password=$(echo $r | jq '.password' | sed 's/"//g')
-  terraform_sp_id=$(az ad sp list --spn "$terraform_sp_name" --query "[0].objectId" -o "tsv")
-  echo "Done. ID: $terraform_sp_id"
-  echo
+  envconffile=$confdir/$ENV.json
+  appname=github-action-${PROJECT}-${ENV}
 
-  echo "Adding the service principal details to the key vault..."
-  r=$(az keyvault secret set --vault-name "$pipeline_kv" --name "SP-ID" --value "$terraform_sp_app_id")
-  r=$(az keyvault secret set --vault-name "$pipeline_kv" --name "SP-PASSWORD" --value "$terraform_sp_password")
-  r=$(az keyvault secret set --vault-name "$pipeline_kv" --name "TENANT-ID" --value "$tenant_id")
-  r=$(az keyvault secret set --vault-name "$pipeline_kv" --name "SUBSCRIPTION-ID" --value "$subscription_id")
-  echo "Done."
-  echo
+  [[ -f $confdir/.$appname.json ]] && appjson=$(cat ./.$appname.json) || appjson=$(az ad app create --display-name $appname)
+  [[ -f $confdir/.$appname.json ]] || echo $appjson > $confdir/.$appname.json	
+  appid=$(echo $appjson | jq -r '.appId')
+  sp=$(az ad sp list --query "[?appId=='$appid'].id" -o tsv --all)
+  [[ -z $sp ]] && sp=$(az ad sp create --id $appid --query id -o tsv)
+  ##az ad sp list --all --query "[?appId=='$appid']"  > ./.$appname-sp.json
+
+  ## create github  federatoin for the service principal
+  if [[ -z $github_environment]]; then
+
+cat > $confdir/.credential.json <<EOF
+{
+    "name": "Testing",
+    "issuer": "https://token.actions.githubusercontent.com",    
+    "subject": "repo:$ORG/$REPO:environment:$ENV",
+    "description": "Testing",
+    "audiences": [
+        "api://AzureADTokenExchange"
+    ]
+}
+EOF
+
+else
+
+cat > $confdir/.credential.json <<EOF
+{
+    "name": "Testing",
+    "issuer": "https://token.actions.githubusercontent.com",    
+    "subject": "repo:$ORG/$REPO:refs:ref/heads/$BRANCH",
+    "description": "Testing",
+    "audiences": [
+        "api://AzureADTokenExchange"
+    ]
+}
+EOF
+
+fi
+
+az ad app federated-credential create --id $appid --parameters $confdir/.credential.json
+
+for i in ($pipeline_rg_id $terraform_rg_id $main_rg_id $spoke_rg_id $func_rg_id); do
+  az role assignment create --assignee $appid --scope "$i" --role "owner"
+done
+
+## set permissison on storage account
+az role assignment create --assignee "$appid" --scope "$terraform_rg" --role "Storage Blob Data Contributor"
 
   
-
   if [[ -z $organization_url ]] ; then
     echo "No Azure DevOps orgnization do not create service connection."
     echo "For manual run, we need the current user to be granted reader right on $pipeline_kv_id"
@@ -141,8 +214,8 @@ function up-oidc {
     
     userupn=$(az account show --query user.name -o tsv)
     userid=$(az ad user list --query "[?mail=='$userupn'].userPrincipalName"  -o tsv )
-
-    r=$(az keyvault set-policy --name $pipeline_kv --upn $userid --subscription "$subscription_id" --secret-permissions "get" "list")
+    az role assignment create --assignee $userid --scope "$terraform_rg" --role "Storage Blob Data Contributor"
+    
     azdo_sp_id=
     azdo_ra_id=
     azdo_sc_id=
@@ -185,48 +258,8 @@ function up-oidc {
     echo "Done. ID: $azdo_sc_id"
 
   fi
-  echo "Created the following resources:"
-  echo "  $pipeline_rg ($pipeline_rg_id)"
-  echo "  $pipeline_kv ($pipeline_kv_id)"
-  echo "  $terraform_rg ($terraform_rg_id)"
-  echo "  $terraform_sa ($terraform_sa_id)"
-  echo "  $main_rg ($main_rg_id)"
-  echo "  $spoke_rg ($spoke_rg_id)"
   
-  echo "  $func_rg ($func_rg_id)"
-  echo "  $terraform_sp ($terraform_sp_id)"
-  if [[ -z $azdo_sp_id ]]; then 
-    echo "no azdevops"
-  else
-    echo "  $azdo_sp ($azdo_sp_id)"
-    echo "  $azdo_ra_name ($azdo_ra_id)"
-    echo "  $azdo_sc ($azdo_sc_id)"
-  fi
 
-
-[[ -d ./tf-vars ]] || mkdir ./tf-vars
-
-
-
-cat > ./tf-vars/${env}.json << EOF
-{
-  "pipeline-rg" : "${pipeline_rg_id}",
-  "terraform-rg" : "${terraform_rg_id}",
-  "main-rg" : "${main_rg_id}",
-  "spoke-rg" : "${spoke_rg_id}",
-   "pipeline-kv" :  "${pipeline_kv_id}"
-}
-EOF
-
-folder=${PWD##*/}
-tfenvfile=../../$folder/environments/${env}.tfvars
-
-if [[ -f $tfenvfile ]] ; then
-  sed -i -e "s/lz_subscription_id.*/lz_subscription_id = \"${subscription_id}\"/ig" $tfenvfile
-
-else
-  echo "lz_subscription_id = \"${subscription_id}\"" >> $tfenvfile
-fi
 
   echo
   echo "All Done."
@@ -305,7 +338,7 @@ function up {
   echo "Done. IDs: $main_rg_id $func_rg_id $spoke_rg_id"
   echo
 
-  echo "Creating a service principal for Terraform..."
+  echo "Creating a service principal for Terraform and store the secret in the key vault..."
   terraform_sp=http://${prefix}-${env}-tf-sp
   r=$(az ad sp create-for-rbac -n $terraform_sp --role "contributor" --scopes "$terraform_sa_id" "$main_rg_id" "$func_rg_id" "$spoke_rg_id")
   terraform_sp_name=$(echo $r | jq '.name' | sed 's/"//g')
@@ -391,31 +424,6 @@ function up {
     echo "  $azdo_ra_name ($azdo_ra_id)"
     echo "  $azdo_sc ($azdo_sc_id)"
   fi
-
-
-[[ -d ./tf-vars ]] || mkdir ./tf-vars
-
-
-
-cat > ./tf-vars/${env}.json << EOF
-{
-  "pipeline-rg" : "${pipeline_rg_id}",
-  "terraform-rg" : "${terraform_rg_id}",
-  "main-rg" : "${main_rg_id}",
-  "spoke-rg" : "${spoke_rg_id}",
-   "pipeline-kv" :  "${pipeline_kv_id}"
-}
-EOF
-
-folder=${PWD##*/}
-tfenvfile=../../$folder/environments/${env}.tfvars
-
-if [[ -f $tfenvfile ]] ; then
-  sed -i -e "s/lz_subscription_id.*/lz_subscription_id = \"${subscription_id}\"/ig" $tfenvfile
-
-else
-  echo "lz_subscription_id = \"${subscription_id}\"" >> $tfenvfile
-fi
 
   echo
   echo "All Done."
@@ -546,6 +554,11 @@ do
     ;;
     --location)
     location="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --folder)
+    folder="$2"
     shift # past argument
     shift # past value
     ;;

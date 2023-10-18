@@ -28,9 +28,10 @@ terraform init -backend-config="storage_account_name=${PREFIX}${ENV}tfsa" \
 ## for this test we have created the rgsource groups to be able to set delegation on those before terraform
 ## we need to import them in the state 
 
-rg=$(cat ../pipelines/$folder/tf-vars/${ENV}.json | jq -r '."main-rg"')
+
+rg=$(cat ../pipelines/$folder/tf-vars/${ENV}.json | jq -r '.terraform.resourceGroups."main-rg"')
 terraform import  -var="tenant_id=$TENANT_ID" -var-file=./environments/${ENV}.tfvars   "azurerm_resource_group.main" $rg
-rg=$(cat ../pipelines/$folder/tf-vars/${ENV}.json | jq -r '."spoke-rg"')
+rg=$(cat ../pipelines/$folder/tf-vars/${ENV}.json | jq -r '.terraform.resourceGroups."spoke-rg"')
 terraform import  -var="tenant_id=$TENANT_ID" -var-file=./environments/${ENV}.tfvars   "azurerm_resource_group.spoke" $rg
 
 
