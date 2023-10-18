@@ -5,3 +5,4 @@
 *.plan
 tf-vars/
 .*.sh
+.*.json

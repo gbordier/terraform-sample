@@ -3,6 +3,7 @@ set -euo pipefail
 
 confdir=../conf
 
+
 ## modified gbordier
 ## should only setup the terraform related envionrment (not the main rg or spole rg)
 
@@ -46,27 +47,6 @@ function usage {
 
 function output-file {
 
-
-cat > $envconffile << EOF
-{
-  "pipeline" : {
-    "resourceGroups" : {
-      "pipeline-rg" : "${pipeline_rg_id}",
-      "terraform-rg" : "${terraform_rg_id}"
-    },
-    "keyvault" : {
-      "pipeline-kv" :  "${pipeline_kv_id}"
-    }
-   },
-  "terraform" : {
-    "resourceGroups" : {
-     "main-rg" : "${main_rg_id}",
-     "spoke-rg" : "${spoke_rg_id}"
-    }
-  }
-   
-}
-EOF
 
 tfenvfile=../infra/$folder/environments/${env}.tfvars
 
@@ -154,67 +134,71 @@ function up-oidc {
   echo
   
   
-  ## create app and service principal for pipelines
+  ## create app and service principal for pipelines in github
+  if [[ ! -z ${github_org} ]]; then
+    envconffile=$confdir/.$env.json
+    appname=github_action-${github_repo}-${env}
 
-  envconffile=$confdir/.$ENV.json
-  appname=github-action-${PROJECT}-${ENV}
+    [[ -f $confdir/.$appname.json ]] && appjson=$(cat $confdir/.$appname.json) || appjson=$(az ad app create --display-name $appname)
+    [[ -f $confdir/.$appname.json ]] || echo $appjson > $confdir/.$appname.json	
+    appid=$(echo $appjson | jq -r '.appId')
+    sp=$(az ad sp list --query "[?appId=='$appid'].id" -o tsv --all)
+    [[ -z $sp ]] && sp=$(az ad sp create --id $appid --query id -o tsv)
+    ##az ad sp list --all --query "[?appId=='$appid']"  > ./.$appname-sp.json
 
-  [[ -f $confdir/.$appname.json ]] && appjson=$(cat ./.$appname.json) || appjson=$(az ad app create --display-name $appname)
-  [[ -f $confdir/.$appname.json ]] || echo $appjson > $confdir/.$appname.json	
-  appid=$(echo $appjson | jq -r '.appId')
-  sp=$(az ad sp list --query "[?appId=='$appid'].id" -o tsv --all)
-  [[ -z $sp ]] && sp=$(az ad sp create --id $appid --query id -o tsv)
-  ##az ad sp list --all --query "[?appId=='$appid']"  > ./.$appname-sp.json
+    ## create github  federatoin for the service principal
+    if [[ ! -z $github_environment ]]; then
 
-  ## create github  federatoin for the service principal
-  if [[ -z $github_environment]]; then
-
-cat > $confdir/.credential.json <<EOF
-{
-    "name": "Testing",
-    "issuer": "https://token.actions.githubusercontent.com",    
-    "subject": "repo:$ORG/$REPO:environment:$ENV",
-    "description": "Testing",
-    "audiences": [
-        "api://AzureADTokenExchange"
-    ]
-}
+    cat > $confdir/.credential.json <<EOF
+    {
+        "name": "Testing",
+        "issuer": "https://token.actions.githubusercontent.com",    
+        "subject": "repo:${github_org}/${github_repo}:environment:$env",
+        "description": "Testing",
+        "audiences": [
+            "api://AzureADTokenExchange"
+        ]
+    }
 EOF
 
-else
+    else
 
-cat > $confdir/.credential.json <<EOF
-{
-    "name": "Testing",
-    "issuer": "https://token.actions.githubusercontent.com",    
-    "subject": "repo:$ORG/$REPO:refs:ref/heads/$BRANCH",
-    "description": "Testing",
-    "audiences": [
-        "api://AzureADTokenExchange"
-    ]
-}
+      BRANCH=$(git branch --show-current)
+
+      cat > $confdir/.credential.json <<EOF
+      {
+          "name": "Testing",
+          "issuer": "https://token.actions.githubusercontent.com",    
+          "subject": "repo:${github_org}/${github_repo}:refs:ref/heads/$BRANCH",
+          "description": "Testing",
+          "audiences": [
+              "api://AzureADTokenExchange"
+          ]
+      }
 EOF
 
+    fi
+
+  az ad app federated-credential create --id $appid --parameters $confdir/.credential.json
+  for i in $pipeline_rg_id $terraform_rg_id $main_rg_id $spoke_rg_id $func_rg_id ; do
+    az role assignment create --assignee $appid --scope "$i" --role "owner"
+  done
+
+
+  ## set permissison on storage account
+  az role assignment create --assignee $appid --scope "$terraform_rg_id" --role "Storage Blob Data Contributor"
+  ## add local user rights
 fi
-
-az ad app federated-credential create --id $appid --parameters $confdir/.credential.json
-
-for i in ($pipeline_rg_id $terraform_rg_id $main_rg_id $spoke_rg_id $func_rg_id); do
-  az role assignment create --assignee $appid --scope "$i" --role "owner"
-done
-
-## set permissison on storage account
-az role assignment create --assignee "$appid" --scope "$terraform_rg" --role "Storage Blob Data Contributor"
-
   
   if [[ -z $organization_url ]] ; then
     echo "No Azure DevOps orgnization do not create service connection."
-    echo "For manual run, we need the current user to be granted reader right on $pipeline_kv_id"
     echo "for github action we need to created a federated identiy"
-    
+
+    ## REVIEW TODO this ==> only useful when settuing up the manual terraform testing   
     userupn=$(az account show --query user.name -o tsv)
     userid=$(az ad user list --query "[?mail=='$userupn'].userPrincipalName"  -o tsv )
-    az role assignment create --assignee $userid --scope "$terraform_rg" --role "Storage Blob Data Contributor"
+    az role assignment create --assignee $userid --scope "$terraform_rg_id" --role "Storage Blob Data Contributor"
+    
     
     azdo_sp_id=
     azdo_ra_id=
@@ -259,6 +243,24 @@ az role assignment create --assignee "$appid" --scope "$terraform_rg" --role "St
 
   fi
   
+
+cat > $envconffile << EOF
+{
+  "pipeline" : {
+    "resourceGroups" : {
+      "pipeline-rg" : "${pipeline_rg_id}",
+      "terraform-rg" : "${terraform_rg_id}"
+    }
+   },
+  "terraform" : {
+    "resourceGroups" : {
+     "main-rg" : "${main_rg_id}",
+     "spoke-rg" : "${spoke_rg_id}"
+    }
+  }
+   
+}
+EOF
 
 
   echo
@@ -356,7 +358,7 @@ function up {
   echo "Done."
   echo
 
-  if [[ -z $organization_url ]] ; then
+  if [[  -z $organization_url ]] ; then
     echo "No Azure DevOps orgnization do not create service connection."
     echo "For manual run, we need the current user to be granted reader right on $pipeline_kv_id"
     echo "for github action we need to created a federated identiy"
@@ -407,6 +409,30 @@ function up {
     echo "Done. ID: $azdo_sc_id"
 
   fi
+
+
+cat > $envconffile << EOF
+{
+  "pipeline" : {
+    "resourceGroups" : {
+      "pipeline-rg" : "${pipeline_rg_id}",
+      "terraform-rg" : "${terraform_rg_id}"
+    },
+    "keyvault" : {
+      "pipeline-kv" :  "${pipeline_kv_id}"
+    }
+   },
+  "terraform" : {
+    "resourceGroups" : {
+     "main-rg" : "${main_rg_id}",
+     "spoke-rg" : "${spoke_rg_id}"
+    }
+  }
+   
+}
+EOF
+
+
   echo "Created the following resources:"
   echo "  $pipeline_rg ($pipeline_rg_id)"
   echo "  $pipeline_kv ($pipeline_kv_id)"
@@ -511,6 +537,12 @@ project_name=
 prefix=
 env=
 command=
+folder=
+use_oidc=
+github_org=
+github_repo=
+github_environment=
+
 
 # Process arguments
 while [[ $# -gt 0 ]]
@@ -562,6 +594,21 @@ do
     shift # past argument
     shift # past value
     ;;
+    --use-oidc)
+    use_oidc="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --github-repo)
+    github_repo="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --github-org)
+    github_org="$2"
+    shift # past argument
+    shift # past value
+    ;;
     up)
     command="up"
     shift # past argument
@@ -592,13 +639,12 @@ if [[ -z $tenant_id || -z $subscription_id || -z $subscription_name || -z $locat
   exit 1
 fi
 
-use_oidc=$USE_OIDC
+
 
 # Execute command
 case $command in
   up)
   [[ $use_oidc == true ]] && up-oidc || up
-  
   ;;
   down)
   down
