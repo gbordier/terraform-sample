@@ -8,7 +8,7 @@ on:
 env:
   PREFIX: "adx"
   ENV: "dev"
-  TF_DIRECTORY: "adx"
+  TF_DIRECTORY: "infra/adx"
   TF_STATE_PREFIX: "adx"
 
 permissions:
