@@ -6,7 +6,7 @@ locals {
 
 resource "azurerm_eventgrid_system_topic" "nsglogs" {
   name                   = "nsg-logs"
-  resource_group_name    = data.azurerm_resource_group.spoke
+  resource_group_name    = data.azurerm_resource_group.spoke.name
   location               = data.azurerm_resource_group.spoke.location
    ## location               = "Global"
   source_arm_resource_id = local.nsgfloxlogsource_west
