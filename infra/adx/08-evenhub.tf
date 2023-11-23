@@ -30,7 +30,7 @@ resource "azurerm_eventhub_consumer_group" "aad" {
   name                = "congroup1"
   namespace_name      = azurerm_eventhub_namespace.main.name
   eventhub_name       = azurerm_eventhub.aad.name
-  resource_group_name = azurerm_resource_group.spoke.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
   user_metadata       = "some-meta-data"
 }
 
@@ -38,7 +38,7 @@ resource "azurerm_eventhub_consumer_group" "aad" {
 resource "azurerm_eventhub" "defender" {
   name                = "abyss-defender-eventhub"
   namespace_name      = azurerm_eventhub_namespace.main.name
-  resource_group_name = azurerm_resource_group.spoke.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
   partition_count     = 2
   message_retention   = 1
 }
@@ -47,7 +47,7 @@ resource "azurerm_eventhub_consumer_group" "defender" {
   name                = "congroup2"
   namespace_name      = azurerm_eventhub_namespace.main.name
   eventhub_name       = azurerm_eventhub.defender.name
-  resource_group_name = azurerm_resource_group.spoke.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
   user_metadata       = "some-meta-data"
 }
 
@@ -61,7 +61,7 @@ resource "azurerm_role_assignment" "defender" {
 resource "azurerm_eventhub" "firewall" {
   name                = "abyss-firewall-eventhub"
   namespace_name      = azurerm_eventhub_namespace.main.name
-  resource_group_name = azurerm_resource_group.spoke.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
   partition_count     = 2
   message_retention   = 1
 }
@@ -76,6 +76,6 @@ resource "azurerm_eventhub_consumer_group" "firewall" {
   name                = "congroup2"
   namespace_name      = azurerm_eventhub_namespace.main.name
   eventhub_name       = azurerm_eventhub.firewall.name
-  resource_group_name = azurerm_resource_group.spoke.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
   user_metadata       = "some-meta-data"
 }

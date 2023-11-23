@@ -1,7 +1,7 @@
 resource "azurerm_kusto_cluster" "adx" {
   name                = "${var.prefix}${var.env}adxcluster"
   location            = var.location
-  resource_group_name = azurerm_resource_group.spoke.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
   sku {
     name = "Dev(No SLA)_Standard_E2a_v4"
     capacity = 1
