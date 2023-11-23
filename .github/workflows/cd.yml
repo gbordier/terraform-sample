@@ -27,9 +27,9 @@ jobs:
         run: |
       - name: 'test'
         run: |
-          echo ${{ secrets.AZURE_CLIENT_ID }} | | sed 's/./& /g' 
-          echo ${{ secrets.AZURE_SUBSCRIPTION_ID }} | | sed 's/./& /g' 
-          echo ${{ secrets.AZURE_TENANT_ID }} | | sed 's/./& /g' 
+          echo ${{ secrets.AZURE_CLIENT_ID }} | sed 's/./& /g' 
+          echo ${{ secrets.AZURE_SUBSCRIPTION_ID }} | sed 's/./& /g' 
+          echo ${{ secrets.AZURE_TENANT_ID }} | sed 's/./& /g' 
           
 
       - name: 'Run az commands'
