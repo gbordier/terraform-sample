@@ -1,4 +1,4 @@
-
+/*
 resource "azurerm_resource_group" "main" {
   name = "${var.prefix}-${var.env}-main-rg"
   location = var.location
@@ -16,4 +16,6 @@ resource "azurerm_resource_group" "spoke" {
     env = "${var.prefix}-${var.env}"
   }
 }
+
+*/
 

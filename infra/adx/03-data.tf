@@ -2,7 +2,7 @@ data "azurerm_client_config" "current" {
 }
 
 
-data "azurerm_resource_group" "main-rg" {
+data "azurerm_resource_group" "main" {
   provider = azurerm.connectivity
   name = "${var.prefix}-${var.env}-main-rg"
   // name     = format("%s-%s-%s-%s-hub-rg", var.site_code_hub, var.client_code_hub, var.aip_code_hub, var.environment)
