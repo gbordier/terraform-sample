@@ -1,12 +1,12 @@
 
 resource "azurerm_private_dns_zone" "private" {
   name                = "adx.abyss"
-  resource_group_name = azurerm_resource_group.spoke.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "spoke" {
   name                  = "adx-dns-zone-link"
-  resource_group_name   = azurerm_resource_group.spoke.name
+  resource_group_name   = data.azurerm_resource_group.spoke.name
   private_dns_zone_name = azurerm_private_dns_zone.private.name
   virtual_network_id    = azurerm_virtual_network.spoke.id
 }

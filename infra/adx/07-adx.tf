@@ -27,7 +27,7 @@ resource "azurerm_kusto_cluster" "adx" {
 
 resource "azurerm_kusto_database" "db1" {
   name                = "abyss_db_1"
-  resource_group_name = azurerm_resource_group.spoke.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
   location            = var.location
   cluster_name        = azurerm_kusto_cluster.adx.name
 
@@ -38,8 +38,8 @@ resource "azurerm_kusto_database" "db1" {
 
 resource "azurerm_kusto_eventhub_data_connection" "aad" {
   name                = "db1-eventhub1-aad"
-  resource_group_name = azurerm_resource_group.spoke.name
-  location = azurerm_resource_group.spoke.location
+  resource_group_name = data.azurerm_resource_group.spoke.name
+  location = data.azurerm_resource_group.spoke.location
 
   cluster_name        = azurerm_kusto_cluster.adx.name
   database_name       = azurerm_kusto_database.db1.name
@@ -72,8 +72,8 @@ resource "azurerm_kusto_eventhub_data_connection" "aad" {
 
 resource "azurerm_kusto_eventhub_data_connection" "defender" {
   name                = "db1-eventhub1-defender"
-  resource_group_name = azurerm_resource_group.spoke.name
-  location = azurerm_resource_group.spoke.location
+  resource_group_name = data.azurerm_resource_group.spoke.name
+  location = data.azurerm_resource_group.spoke.location
 
   cluster_name        = azurerm_kusto_cluster.adx.name
   database_name       = azurerm_kusto_database.db1.name
@@ -89,8 +89,8 @@ resource "azurerm_kusto_eventhub_data_connection" "defender" {
  
  resource "azurerm_kusto_eventhub_data_connection" "firewall" {
   name                = "db1-eventhub1-firewall"
-  resource_group_name = azurerm_resource_group.spoke.name
-  location = azurerm_resource_group.spoke.location
+  resource_group_name = data.azurerm_resource_group.spoke.name
+  location = data.azurerm_resource_group.spoke.location
 
   cluster_name        = azurerm_kusto_cluster.adx.name
   database_name       = azurerm_kusto_database.db1.name

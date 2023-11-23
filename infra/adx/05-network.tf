@@ -2,7 +2,7 @@ resource "azurerm_virtual_network" "spoke" {
 //  name                = format("%s-spoke-vnet",  var.environment)
   name                = format("%s-%s-spoke-vnet", var.prefix, var.env)
   location            = var.location
-  resource_group_name = azurerm_resource_group.spoke.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
   address_space       = var.vnetAddressSpace
 }
 
@@ -10,7 +10,7 @@ resource "azurerm_subnet" "spoke-default" {
 //  name                 = format("%s-spoke-snet",var.environment)
   name                = format("%s-%s-spoke-snet-default", var.prefix, var.env)
 
-  resource_group_name  = azurerm_resource_group.spoke.name
+  resource_group_name  = data.azurerm_resource_group.spoke.name
   virtual_network_name = azurerm_virtual_network.spoke.name
   address_prefixes     = var.subnetAddressSpace1
 }

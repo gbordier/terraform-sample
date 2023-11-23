@@ -1,3 +1,4 @@
+/*
 resource "azurerm_storage_account" "sa" {
   name = "${var.prefix}${var.env}sa"
   resource_group_name = azurerm_resource_group.main.name
@@ -56,3 +57,4 @@ data "azurerm_storage_account_sas" "logs-sc-sas-token" {
 locals {
   logs_sas_url = "${azurerm_storage_account.sa.primary_blob_endpoint}${azurerm_storage_container.logs-sc.name}?${data.azurerm_storage_account_sas.logs-sc-sas-token.sas}"
 }
+*/

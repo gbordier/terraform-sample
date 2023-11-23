@@ -1,7 +1,7 @@
 resource "azurerm_eventhub_namespace" "main" {
   name                = "abyss-main-eventhub-nc"
-  location            = azurerm_resource_group.spoke.location
-  resource_group_name = azurerm_resource_group.spoke.name
+  location            = data.azurerm_resource_group.spoke.location
+  resource_group_name = data.azurerm_resource_group.spoke.name
   sku                 = "Standard"
   capacity            = 1
 
@@ -13,7 +13,7 @@ resource "azurerm_eventhub_namespace" "main" {
 resource "azurerm_eventhub" "aad" {
   name                = "abyss-aad-eventhub"
   namespace_name      = azurerm_eventhub_namespace.main.name
-  resource_group_name = azurerm_resource_group.spoke.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
   partition_count     = 2
   message_retention   = 1
 }
