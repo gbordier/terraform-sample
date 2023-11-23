@@ -138,16 +138,17 @@ function up-oidc {
   if [[ ! -z ${github_org} ]]; then
     envconffile=$confdir/.$env.json
     appname=github_action-${github_repo}-${env}
+    appfile=.${env}-aad-builder.json
     appid=$(az ad app list --query "[?displayName=='$appname'].appId" -o tsv --all)
-    [[ -f $confdir/.$appname.json ]] && appjson=$(cat $confdir/.$appname.json) || appjson=$(az ad app create --display-name $appname)
-    [[ -f $confdir/.$appname.json ]] || echo $appjson > $confdir/.$appname.json	
+    [[ -f $confdir/$appfile ]] && appjson=$(cat $confdir/$appfile) || appjson=$(az ad app create --display-name $appname)
+    [[ -f $confdir/$appfile ]] || echo $appjson > $confdir/$appfile
     appid=$(echo $appjson | jq -r '.appId')
     # doublecheck
     appid=$(az ad app list --query "[?appId=='$appid'].appId" -o tsv --all)
     
     sp=$(az ad sp list --query "[?appId=='$appid'].id" -o tsv --all)
     [[ -z $sp ]] && sp=$(az ad sp create --id $appid --query id -o tsv)
-    ##az ad sp list --all --query "[?appId=='$appid']"  > ./.$appname-sp.json
+    
 
 
     gh  secret set AZURE_SUBSCRIPTION_ID  --body "$subscription_id"
