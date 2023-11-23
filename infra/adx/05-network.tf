@@ -143,7 +143,7 @@ resource "azurerm_route_table" "spoke" {
 //  name                          = format("%s-rt",  var.environment)
     name                = format("%s-%s-rt", var.prefix, var.env)
   location                      = var.location
-  resource_group_name           = azurerm_resource_group.spoke.name
+  resource_group_name           = data.azurerm_resource_group.spoke.name
   disable_bgp_route_propagation = false
 
   route {
@@ -169,7 +169,7 @@ resource "azurerm_subnet_route_table_association" "spoke-pe" {
 resource "azurerm_private_endpoint" "adx" {
   name                = format("%s-%s-pe-adx", var.prefix, var.env)
   location                      = var.location
-  resource_group_name           = azurerm_resource_group.spoke.name
+  resource_group_name           = data.azurerm_resource_group.spoke.name
 
   subnet_id           = azurerm_subnet.spoke-pe.id
 
