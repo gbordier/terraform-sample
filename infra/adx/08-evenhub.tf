@@ -11,7 +11,7 @@ resource "azurerm_eventhub_namespace" "main" {
 }
 
 resource "azurerm_eventhub" "aad" {
-  name                = "abyss-aad-eventhub"
+  name                = "eh-abyss-aad"
   namespace_name      = azurerm_eventhub_namespace.main.name
   resource_group_name = data.azurerm_resource_group.spoke.name
   partition_count     = 2
@@ -36,7 +36,7 @@ resource "azurerm_eventhub_consumer_group" "aad" {
 
 
 resource "azurerm_eventhub" "defender" {
-  name                = "abyss-defender-eventhub"
+  name                = "eh-abyss-defender"
   namespace_name      = azurerm_eventhub_namespace.main.name
   resource_group_name = data.azurerm_resource_group.spoke.name
   partition_count     = 2
@@ -59,7 +59,7 @@ resource "azurerm_role_assignment" "defender" {
 
 
 resource "azurerm_eventhub" "firewall" {
-  name                = "abyss-firewall-eventhub"
+  name                = "eh-abyss-firewall"
   namespace_name      = azurerm_eventhub_namespace.main.name
   resource_group_name = data.azurerm_resource_group.spoke.name
   partition_count     = 2
@@ -78,4 +78,27 @@ resource "azurerm_eventhub_consumer_group" "firewall" {
   eventhub_name       = azurerm_eventhub.firewall.name
   resource_group_name = data.azurerm_resource_group.spoke.name
   user_metadata       = "some-meta-data"
+}
+
+
+resource "azurerm_eventhub" "nsg" {
+  name                = "eh-abyss-nsg"
+  namespace_name      = azurerm_eventhub_namespace.main.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
+  partition_count     = 2
+  message_retention   = 1
+}
+
+resource "azurerm_role_assignment" "nsg" {
+  scope                =  azurerm_eventhub.nsg.id
+  role_definition_name = "Azure Event Hubs Data Receiver"
+  principal_id         = azurerm_kusto_cluster.adx.identity[0].principal_id
+}
+
+resource "azurerm_eventhub_consumer_group" "nsg" {
+  name                = "Default"
+  namespace_name      = azurerm_eventhub_namespace.main.name
+  eventhub_name       = azurerm_eventhub.nsg.name
+  resource_group_name = data.azurerm_resource_group.spoke.name
+  
 }

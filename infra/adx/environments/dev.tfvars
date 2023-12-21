@@ -1,7 +1,7 @@
 location = "northeurope"
 env = "dev"
 prefix ="adx"
-environnment = "${PREFIX}-${ENV}"
+
 
 //cr_sku = "Basic"
 

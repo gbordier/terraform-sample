@@ -9,12 +9,6 @@ variable "subscription_id" {
   description = "Azure subscription ID"
 }
 */
-/*
-variable "environment" {
-  type        = string
-  description = "Environment"
-}
-*/
 
 variable "env" {
   type = string

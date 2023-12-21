@@ -252,7 +252,7 @@ fi
 
   fi
   
-
+if [[ ! -z $envconffile ]];then
 cat > $envconffile << EOF
 {
   "pipeline" : {
@@ -270,7 +270,7 @@ cat > $envconffile << EOF
    
 }
 EOF
-
+fi
 
   echo
   echo "All Done."
@@ -419,7 +419,7 @@ function up {
 
   fi
 
-
+  if [[ ! -z $envconffile ]];then
 cat > $envconffile << EOF
 {
   "pipeline" : {
@@ -441,6 +441,7 @@ cat > $envconffile << EOF
 }
 EOF
 
+  fi
 
   echo "Created the following resources:"
   echo "  $pipeline_rg ($pipeline_rg_id)"
@@ -493,14 +494,14 @@ function down {
   echo "Deleting the resource group for provisioned resources..."
   main_rg=${prefix}-${env}-main-rg
   az group delete -n "$main_rg" -y
-  func_rg=${prefix}-${env}-func-rg
+  func_rg=${prefix}-${env}-spoke-rg
   az group delete -n "$func_rg" -y
   echo "Done."
   echo
 
   echo "Deleting the service principal for Terraform..."
   terraform_sp=http://${prefix}-${env}-tf-sp
-  terraform_sp_id=$(az ad sp list --spn "$terraform_sp" --query "[0].objectId" -o "tsv")
+  terraform_sp_id=$(az ad sp list  --query "[?displayName=='$terraform_sp'].id"  -o "tsv" --all)
   az ad sp delete --id "$terraform_sp_id"
   echo "Done."
   echo

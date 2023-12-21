@@ -5,9 +5,17 @@ First off this template is meant to leverage enterprise-scale like deployment ei
 
 It is therefore meant to be deployed on *multiple* subscription where the runner / service principal has all permissions at the subscription level
 
-However, since this might not be practical for testing,  the ./environment.sh script is provided to 
+However, since this might not be practical for testing,  the ./environment.sh script is provided to: 
 - create several resource groups to serve as delegation points for terraform
 - create a storage account to store the TF state file
+
+> Note:
+>
+>- In "command line" or "Az Devops" mode we need to use a service principal for Terraform to get access to Azure so the script actually creates/modify an AAD Service Principal and stores the secret in a dedicated keyvault. The terraform service principal has access to the target resource group the secret for those loaded in the SPID and SPPASSWORD variables and the Storage account key SAACCOUNTKEY variable contains the key for terraform to access its state.
+
+>- In "github action"  mode we use Github and Terraform AAD integration and we use the same service principal and grant it access to the target resource groups.
+
+TODO : move azdevops to OICD integration
 
 # How to use
 
@@ -18,8 +26,24 @@ However, since this might not be practical for testing,  the ./environment.sh sc
 - **conf** contains the project configuration files 
 - **scripts** contains the scripts to create the environment and bootstrap the pipeline
 
+## What are Pipeline Resources
+Pipeline resource groupe contains resources are necessary to run pipelines, if Terraform OICD integration there is no necessary resources, 
+Otherwise , it is where we create the keyvault with the necessary service principal secrets for terraform to deploy resources.
+
+only the owner is delegated access to this resource group.
+
+
+## What are Terraform  Resources
+Terraform resource group stores Terraform specific resources such as the storage account that holds the terraform state
+
+The Terraform service principal has access to this resource group
+
+When Terraform AAD integration is enabled, the same SP is used for the pipeline and terraform identity.
+
+
 ## Prerequisites
 create a .env.sh fil using the env.sh.template file for guidance
+
 
 
 ```
@@ -30,9 +54,6 @@ ENV=<the environment name> # dev, test, prod, etc. will also be added to the res
 FOLDER=<terraform folder> # adx,infra,governance, function ... the folder with the terraform code to use within the infra folder
 USE_OIDC=true ## instruct the bootstrap script to use OIDC for terraform and az cli access
 ```
-
-
-
 
 
 # Boot strap
@@ -47,7 +68,11 @@ The environment bootstraping script is heavily inspired by [Maninderjit Bindra](
 
 
 ## OIDC (OAuth) or not
-then is we cannot use OIDC for terraform and azure access we also:
+
+OIDC (Oauth) github or azdevops integration is the best way for deploying from a pipeline, since no secret need to be kept. 
+But sometimes it is not possible (such as when we deploy from the command line)
+
+When is we cannot use OIDC for terraform and azure access we also:
 - create a SP and secret for terraform and delegates the SP permissions to the target resource groups
 - create a keyvault for terraform in the pipeline resource group
 - store the SP secret and the storage account account key in the keyvault
@@ -63,9 +88,14 @@ if running in an environment SP can be delegated the entire subscription :
 *at this point the environmnet script always creates the resource groups, so don't use it if you can delegate the SP to the whole sub*
 
 
-# git hub terraform template
+# GitHub terraform template
 
+the github action template is located in the .guthub/workflow/cd.yml file.
 
+it performs the following actions:
+- sets the variable for github and terraform AAD integration
+- init the terraform state in the storage account
+- identify target resource groups and create import blocks for them
 
 # Azure DevOps pipeline template
 
@@ -78,19 +108,18 @@ cd.yml has been slightly modified so that we ensure the same version of terrafor
 ### pipeline secret management with Az Devops
 using the  template at ../templates/pipeline-secrets.yml pulls the secret from the keyvault that has been created by the environment script.
 
-SP_ID and SP_PASSWORD are pulled from the keyvault and used to login to azure
-
-## next steps : use github actions instead of Azure DevOps
+SP_ID and SP_PASSWORD are pulled from the keyvault and used for terraform to login to azure
 
 
-## Environments
+
+# Environments
 
 ### Creating an environment
 1. create e .env.sh file from the env.sh.template file  and set the following variable
    - TENANT_ID
    - PREFIX (this string will prefix all your resource names)
    - ENV
-1. Run `xx/environment.sh up`. For help, run the script with `-h` flag.
+2. Run `./01-bootstrap.sh`
 
    This will create the needed service principals, an Azure DevOps service connection and the following resource groups and resources:
 
@@ -100,16 +129,18 @@ SP_ID and SP_PASSWORD are pulled from the keyvault and used to login to azure
      - _[PREFIX][env]tfsa_: Storage account for Terraform
        - _terraform-state_: Blob container for Terraform state
    - **[PREFIX]-[ENV]-main-rg**
-     - Most of the Terraform provisioned Azure resources
-   - **[PREFIX]-[ENV]-func-rg** - Terraform provisioned Azure Functions related resources. This is needed, because based on a [current limitation](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-linux-intro#limitations) on Azure, both Linux and Functions apps cannot live in the same resource group.
+     - This represent the "hub" landing zone where we will not be deploying anything
+   - **[PREFIX]-[ENV]-spoke-rg** where we deploy all resources
 
-2. In Azure DevOps, go to `Project settings Service connections` (or click the link from the script output), select your new connection, click `Edit` and `Verify connection`. Click OK.
+3.  linking to your CICD pipelint:
+ - In Azure DevOps, go to `Project settings Service connections` (or click the link from the script output), select your new connection, click `Edit` and `Verify connection`. Click OK.
+ - in GithubAction, use the ghsecrets.sh file to load the environments Service principal, subscription and tenant ids in github secrets for your environnement
 
-3. Create a `tfvars` file for the new environment at `infra/tf-vars/[ENV].tfvars`. Use the same environment identifier that you used with the script.
+4. Create a `tfvars` file for the new environment at `infra/tf-vars/[ENV].tfvars`. Use the same environment identifier that you used with the script.
 
 ### Removing an environment
 
-To remove an environment created, run `infra/scripts/environment.sh down` (use `-h` flag for help). This removes all the resources, service principals and service connections created for the environment as well as all the resources Terraform has provisioned for the environment. You'll have to remove the pipelines manually.
+use the ./99-down.sh script to remove resources and then delete environnemnt 
 
 ## Pipelines
 

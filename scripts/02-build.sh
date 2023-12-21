@@ -3,7 +3,7 @@
 [[ -z $TENANT_ID  || -z $SUBSCRIPTION_ID || -z $PREFIX || -z $ENV || -z $FOLDER ]] && echo "missing env vars look for instructions in env.sh.template" && exit 1
 
 
-cd ./infra/$FOLDER
+cd ../infra/$FOLDER
 
 ## load variables and secrets from keyvault
 keyVaultName=$PREFIX-$ENV-pl-kv
@@ -22,20 +22,21 @@ eval $(az keyvault secret list --vault-name $keyVaultName --query "[].[name]" -o
 
 
 ## shell variable do not support dashes :( 
+
 terraform init -backend-config="storage_account_name=${PREFIX}${ENV}tfsa" \
-    -backend-config="container_name=terraform-state" \
+    -backend-config="container_name=$FOLDER-terraform-state" \
     -backend-config="access_key=$SA_ACCOUNTKEY" \
-    -backend-config="key=${PWD##*/}.terraform.tfstate" \
+    -backend-config="key=terraform.tfstate" \
     -backend-config="resource_group_name=${PREFIX}-${ENV}-tf-rg"
 
 ## for this test we have created the rgsource groups to be able to set delegation on those before terraform
 ## we need to import them in the state 
 
-
-rg=$(cat ../pipelines/$folder/tf-vars/${ENV}.json | jq -r '.terraform.resourceGroups."main-rg"')
-terraform import  -var="tenant_id=$TENANT_ID" -var-file=./environments/${ENV}.tfvars   "azurerm_resource_group.main" $rg
-rg=$(cat ../pipelines/$folder/tf-vars/${ENV}.json | jq -r '.terraform.resourceGroups."spoke-rg"')
-terraform import  -var="tenant_id=$TENANT_ID" -var-file=./environments/${ENV}.tfvars   "azurerm_resource_group.spoke" $rg
+## import can be replaced with data sections
+## rg=$(cat ../../pipelines/$FOLDER/tf-vars/${ENV}.json | jq -r '.terraform.resourceGroups."main-rg"')
+## terraform import  -var="tenant_id=$TENANT_ID" -var-file=./environments/${ENV}.tfvars   "azurerm_resource_group.main" $rg
+## rg=$(cat ../../pipelines/$FOLDER/tf-vars/${ENV}.json | jq -r '.terraform.resourceGroups."spoke-rg"')
+## terraform import  -var="tenant_id=$TENANT_ID" -var-file=./environments/${ENV}.tfvars   "azurerm_resource_group.spoke" $rg
 
 
 terraform plan -var-file=./environments/${ENV}.tfvars \

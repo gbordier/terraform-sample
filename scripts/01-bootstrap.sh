@@ -13,7 +13,10 @@ else
 echo "this is github mode"
 ./environment.sh --tenant-id $TENANT_ID  --subscription-id $SUBSCRIPTION_ID  --location northeurope --prefix $PREFIX \
     --use-oidc $USE_OIDC --env $ENV --folder $FOLDER  --github-org $GITHUB_ORG --github-repo $GITHUB_REPO up 
+
+echo "boot strap environnemnt done, you can run the deployment from the pipeline now once you have verified the github secrets have been imported into\n github actions for github environnemnet $ENV"
 fi
+
 
 
 

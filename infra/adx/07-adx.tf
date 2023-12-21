@@ -56,13 +56,20 @@ resource "azurerm_kusto_eventhub_data_connection" "aad" {
  resource "azurerm_kusto_script" "example" {
   name                               = "example"
   database_id                        = azurerm_kusto_database.db1.id
+  
   script_content = <<-EOF
 .create table ['rawlog_aad']   (records:dynamic) 
-.create table ['rawlog_aad'] ingestion json mapping 'raw_mapping' '[{"column":"records", "Properties":{"Path":"$[\'records\']"}}]'
+.create-or-alter table ['rawlog_aad'] ingestion json mapping  'raw_mapping' '[{"column":"records", "Properties":{"Path":"$[\'records\']"}}]'
+
 .create table ['rawlog_defender']   (records:dynamic) 
-.create table ['rawlog_defender'] ingestion json mapping 'raw_mapping' '[{"column":"records", "Properties":{"Path":"$[\'records\']"}}]'
+.create-or-alter table ['rawlog_defender'] ingestion json mapping 'raw_mapping' '[{"column":"records", "Properties":{"Path":"$[\'records\']"}}]'
+
 .create table ['rawlog_firewall']   (records:dynamic) 
-.create table ['rawlog_firewall'] ingestion json mapping 'raw_mapping' '[{"column":"records", "Properties":{"Path":"$[\'records\']"}}]'
+.create-or-alter table ['rawlog_firewall'] ingestion json mapping 'raw_mapping' '[{"column":"records", "Properties":{"Path":"$[\'records\']"}}]'
+
+.create table ['rawlog_nsg']   (records:dynamic) 
+.create-or-alter table  ['rawlog_nsg'] ingestion json mapping 'raw_mapping' '[{"column":"records", "Properties":{"Path":"$[\'records\']"}}]'
+
  EOF
 
   continue_on_errors_enabled         = true
@@ -102,5 +109,23 @@ resource "azurerm_kusto_eventhub_data_connection" "defender" {
   mapping_rule_name = "raw_mapping" #(Optional)
   data_format       = "JSON"             #(Optional)
   identity_id =  azurerm_kusto_cluster.adx.id
+}
+ 
+resource "azurerm_kusto_eventgrid_data_connection" "nsg" {
+  name                = "db1-evengrid-nsg"
+  storage_account_id  = local.nsgflowlogsource_north
+  resource_group_name = data.azurerm_resource_group.spoke.name
+  location            = data.azurerm_resource_group.spoke.location
+  cluster_name        = azurerm_kusto_cluster.adx.name
+  database_name       = azurerm_kusto_database.db1.name
+  eventhub_id         = azurerm_eventhub.nsg.id
+
+  eventhub_consumer_group_name      = azurerm_eventhub_consumer_group.nsg.name
+  managed_identity_resource_id      = azurerm_kusto_cluster.adx.id
+
+  table_name        = "rawlog_nsg"  #(Optional)
+  mapping_rule_name = "raw_mapping" #(Optional)
+  data_format       = "JSON"        #(Optional)
+  
 }
  

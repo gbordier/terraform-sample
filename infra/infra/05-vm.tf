@@ -1,13 +1,11 @@
 resource "azurerm_virtual_network" "spoke" {
-  name                = format("%s-spoke-vnet",  var.environment)
-//  name                = format("%s-%s-spoke-vnet", var.prefix, var.env)
+  name                = format("%s-%s-spoke-vnet",  var.prefix, var.env)
   location            = var.location
   resource_group_name = azurerm_resource_group.spoke.name
   address_space       = var.vnetAddressSpace
 }
 
 resource "azurerm_subnet" "spoke" {
-//  name                 = format("%s-spoke-snet",var.environment)
   name                = format("%s-%s-spoke-snet", var.prefix, var.env)
 
   resource_group_name  = azurerm_resource_group.spoke.name
@@ -18,7 +16,7 @@ resource "azurerm_subnet" "spoke" {
 resource "azurerm_network_security_group" "spoke" {
 
     name                = format("%s-%s-spoke-nsg", var.prefix, var.env)
-//  name                = format("%s-spoke-nsg",  var.environment)
+
 
   location            = var.location
   resource_group_name = azurerm_resource_group.spoke.name
@@ -126,7 +124,7 @@ resource "azurerm_subnet_network_security_group_association" "spoke" {
 }
 
 resource "azurerm_route_table" "spoke" {
-  name                          = format("%s-rt",  var.environment)
+  name                = format("%s-%s-rt",  var.prefix, var.env)
   location                      = var.location
   resource_group_name           = azurerm_resource_group.spoke.name
   disable_bgp_route_propagation = false
@@ -146,7 +144,7 @@ resource "azurerm_subnet_route_table_association" "spoke" {
 }
 
 resource "azurerm_network_interface" "test_vm" {
-  name                = format("%s-test-nic", var.environment)
+  name                = format("%s-%s-test-nic", var.prefix,var.env)
   location            = var.location
   resource_group_name = azurerm_resource_group.spoke.name
 
@@ -164,7 +162,7 @@ resource "tls_private_key" "test_vm" {
 }
 
 resource "azurerm_linux_virtual_machine" "test_vm" {
-  name                            = format("%s-test-vm",  var.environment)
+  name                            = format("%s-%s-test-vm",  var.prefix, var.env)
   resource_group_name             = azurerm_resource_group.spoke.name
   location                        = var.location
   size                            = "Standard_F2"

@@ -1,5 +1,5 @@
 resource "azurerm_virtual_network" "spoke" {
-//  name                = format("%s-spoke-vnet",  var.environment)
+
   name                = format("%s-%s-spoke-vnet", var.prefix, var.env)
   location            = var.location
   resource_group_name = data.azurerm_resource_group.spoke.name
@@ -7,7 +7,7 @@ resource "azurerm_virtual_network" "spoke" {
 }
 
 resource "azurerm_subnet" "spoke-default" {
-//  name                 = format("%s-spoke-snet",var.environment)
+
   name                = format("%s-%s-spoke-snet-default", var.prefix, var.env)
 
   resource_group_name  = data.azurerm_resource_group.spoke.name
@@ -16,7 +16,7 @@ resource "azurerm_subnet" "spoke-default" {
 }
 
 resource "azurerm_subnet" "spoke-pe" {
-//  name                 = format("%s-spoke-snet",var.environment)
+
   name                = format("%s-%s-spoke-snet-pe", var.prefix, var.env)
 
   resource_group_name  = data.azurerm_resource_group.spoke.name
@@ -27,7 +27,7 @@ resource "azurerm_subnet" "spoke-pe" {
 resource "azurerm_network_security_group" "spoke" {
 
     name                = format("%s-%s-spoke-nsg", var.prefix, var.env)
-//  name                = format("%s-spoke-nsg",  var.environment)
+
   location            = var.location
   resource_group_name = data.azurerm_resource_group.spoke.name
   security_rule {
@@ -140,7 +140,7 @@ resource "azurerm_subnet_network_security_group_association" "spoke-pe" {
 }
 
 resource "azurerm_route_table" "spoke" {
-//  name                          = format("%s-rt",  var.environment)
+
     name                = format("%s-%s-rt", var.prefix, var.env)
   location                      = var.location
   resource_group_name           = data.azurerm_resource_group.spoke.name
