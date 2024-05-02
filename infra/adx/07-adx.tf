@@ -113,7 +113,7 @@ resource "azurerm_kusto_eventhub_data_connection" "defender" {
  
 resource "azurerm_kusto_eventgrid_data_connection" "nsg" {
   name                = "db1-evengrid-nsg"
-  storage_account_id  = local.nsgflowlogsource_north
+  storage_account_id  = var.nsgflowlogsource_north
   resource_group_name = data.azurerm_resource_group.spoke.name
   location            = data.azurerm_resource_group.spoke.location
   cluster_name        = azurerm_kusto_cluster.adx.name

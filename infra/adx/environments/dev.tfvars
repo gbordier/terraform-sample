@@ -14,3 +14,24 @@ lz_subscription_id = "30ee7660-5010-445b-8bd1-6f4cf54c89a7"
 vnetAddressSpace= ["10.252.163.0/24"]
 subnetAddressSpace1= ["10.252.163.0/28"]
 subnetAddressSpace2= ["10.252.163.32/28"]
+/*
+replaced by json version in .env.json
+eventgrid_sources =  {
+        "nsgflow-west" = {
+        sourcestorageaccount = "/subscriptions/30ee7660-5010-445b-8bd1-6f4cf54c89a7/resourceGroups/adx-west/providers/Microsoft.Storage/storageAccounts/stnsgflowlogswest",
+        location = "westeurope",
+        resource_group_name = "nsglogs"
+        },
+     
+        "nsgflow-north" = {
+        sourcestorageaccount = "/subscriptions/30ee7660-5010-445b-8bd1-6f4cf54c89a7/resourceGroups/nsgflow/providers/Microsoft.Storage/storageAccounts/gbordierstnsgflowlogs" ,
+        location = "northeurope",
+        resource_group_name = "nsglogs"
+    }
+
+}
+*/
+nsgresourcegroup_north="nsgflow"
+nsgflowlogsource_north="/subscriptions/30ee7660-5010-445b-8bd1-6f4cf54c89a7/resourceGroups/nsgflow/providers/Microsoft.Storage/storageAccounts/gbordierstnsgflowlogs"
+
+  

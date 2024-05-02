@@ -149,11 +149,9 @@ function up-oidc {
     sp=$(az ad sp list --query "[?appId=='$appid'].id" -o tsv --all)
     [[ -z $sp ]] && sp=$(az ad sp create --id $appid --query id -o tsv)
     
-
-
-    gh  secret set AZURE_SUBSCRIPTION_ID  --body "$subscription_id"
-    gh  secret set AZURE_CLIENT_ID  --body "$appid"
-    gh  secret set AZURE_TENANT_ID  --body "$tenant_id"
+    gh  secret -e $env set AZURE_SUBSCRIPTION_ID  --body "$subscription_id"
+    gh  secret -e $env set AZURE_CLIENT_ID  --body "$appid"
+    gh  secret -e $env set AZURE_TENANT_ID  --body "$tenant_id"
 
     ## create github  federatoin for the service principal
     if [[ ! -z $github_environment ]]; then

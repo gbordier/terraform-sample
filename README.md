@@ -201,3 +201,15 @@ The included Terraform configuration creates the following Azure resources:
   - Linux functions app service plan
   - Application insights
   - Python functions app with database connection
+
+
+## Terraform installation tricks
+
+on WSL , update hashicorp.gpg with latest signature to get > 1.6
+```
+curl https://apt.releases.hashicorp.com/gpg | gpg --dearmor > hashicorp.gpg
+sudo cp ./hashicorp.gpg   /usr/share/keyrings/hashicorp-archive-keyring.gpg
+sudo apt update
+sudo install terraform
+
+```

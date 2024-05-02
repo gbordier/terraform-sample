@@ -42,3 +42,15 @@ variable "subnetAddressSpace2" {
 type = list(string)
 description=""
 }
+
+
+variable "nsgflowlogsource_north" {
+  type = string
+  description = ""
+
+}
+
+variable "nsgresourcegroup_north" {
+  type = string
+  description =""
+}
